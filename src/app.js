@@ -1,6 +1,7 @@
 import { apexTimingService } from './services/apexTimingService.js';
 import { PitboardHUD } from './components/PitboardHUD.js';
 import { SettingsModal } from './components/SettingsModal.js';
+import { TimingModal } from './components/TimingModal.js';
 
 const e = React.createElement;
 
@@ -8,6 +9,7 @@ export function App() {
   const [timingState, setTimingState] = React.useState(apexTimingService.state);
   const [targetKart, setTargetKart] = React.useState(14);
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
+  const [isTimingModalOpen, setIsTimingModalOpen] = React.useState(false);
 
   React.useEffect(() => {
     // Subscribe to Apex Timing real-time updates
@@ -33,14 +35,37 @@ export function App() {
     'div',
     { className: 'w-screen h-screen bg-black text-white overflow-hidden relative select-none' },
 
-    // Floating Gear Button (Top Right Discreet Config)
+    // Floating Controls Container (Top Bar - Discreet & High Contrast)
     e(
-      'button',
-      {
-        onClick: () => setIsSettingsOpen(true),
-        className: 'absolute top-1 right-2 z-30 opacity-40 hover:opacity-100 bg-black/60 border border-gray-800 text-gray-400 p-1 rounded-full text-xs transition-opacity'
-      },
-      '⚙️'
+      'div',
+      { className: 'absolute top-1.5 right-2 z-30 flex items-center gap-1.5' },
+      
+      // BUTTON TO OPEN OFFICIAL APEX TIMING IN SCREEN
+      e(
+        'button',
+        {
+          onClick: (evt) => {
+            evt.stopPropagation();
+            setIsTimingModalOpen(true);
+          },
+          className: 'px-2.5 py-1 bg-[#00FF66] text-black font-mono font-black text-xs rounded-lg shadow-lg hover:bg-emerald-400 active:scale-95 transition-all flex items-center gap-1'
+        },
+        e('span', null, '⏱️'),
+        e('span', { className: 'uppercase tracking-wider' }, 'TIMING EN VIVO')
+      ),
+
+      // Gear Config Button
+      e(
+        'button',
+        {
+          onClick: (evt) => {
+            evt.stopPropagation();
+            setIsSettingsOpen(true);
+          },
+          className: 'p-1 bg-gray-900/80 border border-gray-800 text-gray-300 rounded-lg text-xs hover:text-white transition-colors'
+        },
+        '⚙️'
+      )
     ),
 
     // Main Content Area (Edge-to-Edge Pure Telemetry Canvas)
@@ -57,6 +82,13 @@ export function App() {
       targetKart,
       onSelectKart: handleSelectKart,
       apexService: apexTimingService
+    }),
+
+    // Official Apex Timing Live Screen Modal
+    e(TimingModal, {
+      isOpen: isTimingModalOpen,
+      onClose: () => setIsTimingModalOpen(false),
+      circuitId: timingState.trackId
     })
   );
 }
