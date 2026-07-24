@@ -17,7 +17,7 @@ export function App() {
       setTimingState(newState);
     });
 
-    // Start simulation / live feed
+    // Start live telemetry polling
     apexTimingService.start();
 
     return () => {
@@ -35,44 +35,17 @@ export function App() {
     'div',
     { className: 'w-screen h-screen bg-black text-white overflow-hidden relative select-none' },
 
-    // Floating Controls Container (Top Bar - Discreet & High Contrast)
-    e(
-      'div',
-      { className: 'absolute top-1.5 right-2 z-30 flex items-center gap-1.5' },
-      
-      // BUTTON TO OPEN OFFICIAL APEX TIMING IN SCREEN
-      e(
-        'button',
-        {
-          onClick: (evt) => {
-            evt.stopPropagation();
-            setIsTimingModalOpen(true);
-          },
-          className: 'px-2.5 py-1 bg-[#00FF66] text-black font-mono font-black text-xs rounded-lg shadow-lg hover:bg-emerald-400 active:scale-95 transition-all flex items-center gap-1'
-        },
-        e('span', null, '⏱️'),
-        e('span', { className: 'uppercase tracking-wider' }, 'TIMING EN VIVO')
-      ),
-
-      // Gear Config Button
-      e(
-        'button',
-        {
-          onClick: (evt) => {
-            evt.stopPropagation();
-            setIsSettingsOpen(true);
-          },
-          className: 'p-1 bg-gray-900/80 border border-gray-800 text-gray-300 rounded-lg text-xs hover:text-white transition-colors'
-        },
-        '⚙️'
-      )
-    ),
-
-    // Main Content Area (Edge-to-Edge Pure Telemetry Canvas)
+    // Main Telemetry Canvas
     e(
       'main',
       { className: 'w-full h-full overflow-hidden' },
-      e(PitboardHUD, { state: timingState, targetKart, apexService: apexTimingService })
+      e(PitboardHUD, {
+        state: timingState,
+        targetKart,
+        apexService: apexTimingService,
+        onOpenTiming: () => setIsTimingModalOpen(true),
+        onOpenSettings: () => setIsSettingsOpen(true)
+      })
     ),
 
     // Settings Modal
@@ -87,8 +60,7 @@ export function App() {
     // Official Apex Timing Live Screen Modal
     e(TimingModal, {
       isOpen: isTimingModalOpen,
-      onClose: () => setIsTimingModalOpen(false),
-      circuitId: timingState.trackId
+      onClose: () => setIsTimingModalOpen(false)
     })
   );
 }

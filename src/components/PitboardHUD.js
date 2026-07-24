@@ -1,6 +1,6 @@
 const e = React.createElement;
 
-export function PitboardHUD({ state, targetKart, apexService }) {
+export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOpenSettings }) {
   const hasDrivers = Array.isArray(state.drivers) && state.drivers.length > 0;
   
   const driverIndex = hasDrivers ? state.drivers.findIndex(d => Number(d.kartNumber) === Number(targetKart)) : -1;
@@ -22,7 +22,9 @@ export function PitboardHUD({ state, targetKart, apexService }) {
         : `-${(Math.abs(deltaLastVsBest) / 1000).toFixed(3)}`;
 
   // Double tap / click to trigger browser full screen mode
-  const handleToggleFullscreen = () => {
+  const handleToggleFullscreen = (evt) => {
+    // Only toggle if not clicking on interactive buttons
+    if (evt.target.closest('button') || evt.target.closest('a')) return;
     const doc = document.documentElement;
     if (!document.fullscreenElement && !document.webkitFullscreenElement) {
       if (doc.requestFullscreen) {
@@ -37,18 +39,48 @@ export function PitboardHUD({ state, targetKart, apexService }) {
     'div',
     { 
       onClick: handleToggleFullscreen,
-      className: 'w-screen h-screen bg-black text-white p-2 md:p-4 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer' 
+      className: 'w-screen h-screen bg-black text-white p-2 md:p-3 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer' 
     },
 
-    // TOP CIRCUIT BRANDING & REAL-TIME CONNECTION BAR (CLEAN, NO REAL APEX TIMING BADGE)
+    // UNIFIED SYMMETRICAL HEADER BAR (CIRCUIT NAME LEFT | TIMING BUTTON & SETTINGS RIGHT)
     e(
       'div',
-      { className: 'w-full py-1.5 px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-2 flex items-center justify-between text-xs md:text-sm font-mono shadow-xl shrink-0' },
-      e('div', { className: 'flex items-center gap-2.5' },
-        e('span', { className: 'w-3 h-3 rounded-full bg-[#00FF66] animate-pulse' }),
-        e('span', { className: 'font-black tracking-wider text-white uppercase text-xs md:text-sm' }, state.trackName || 'Kartódromo Lucas Guerrero'),
-        e('span', { className: 'text-gray-600 hidden sm:inline' }, '|'),
-        e('span', { className: 'text-emerald-400 font-bold text-xs hidden sm:inline' }, state.sessionName || 'Esperando tanda en vivo...')
+      { className: 'w-full py-1 px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-11' },
+      
+      // LEFT SIDE: CIRCUIT STATUS & NAME
+      e('div', { className: 'flex items-center gap-2' },
+        e('span', { className: 'w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-pulse shrink-0' }),
+        e('span', { className: 'font-black tracking-wider text-white uppercase text-xs md:text-sm truncate' }, state.trackName || 'Kartódromo Lucas Guerrero'),
+        e('span', { className: 'text-gray-600 hidden md:inline' }, '|'),
+        e('span', { className: 'text-emerald-400 font-bold text-xs hidden md:inline truncate' }, state.sessionName || 'Esperando tanda en vivo...')
+      ),
+
+      // RIGHT SIDE: SYMMETRICALLY ALIGNED TIMING BUTTON & GEAR CONFIG
+      e('div', { className: 'flex items-center gap-2 shrink-0' },
+        e(
+          'button',
+          {
+            onClick: (evt) => {
+              evt.stopPropagation();
+              onOpenTiming();
+            },
+            className: 'px-2.5 py-1 bg-[#00FF66] text-black font-mono font-black text-xs rounded-lg shadow-lg hover:bg-emerald-400 active:scale-95 transition-all flex items-center gap-1.5'
+          },
+          e('span', null, '⏱️'),
+          e('span', { className: 'uppercase tracking-wider font-extrabold text-[11px] md:text-xs' }, 'TIMING EN VIVO')
+        ),
+
+        e(
+          'button',
+          {
+            onClick: (evt) => {
+              evt.stopPropagation();
+              onOpenSettings();
+            },
+            className: 'p-1 bg-gray-900 border border-gray-800 text-gray-300 hover:text-white rounded-lg text-xs transition-colors'
+          },
+          '⚙️'
+        )
       )
     ),
 
