@@ -57,7 +57,7 @@
     }
     .safe-area-inset {
       padding-top: env(safe-area-inset-top, 0px);
-      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-bottom: env(env(safe-area-inset-bottom, 0px));
       padding-left: env(safe-area-inset-left, 0px);
       padding-right: env(safe-area-inset-right, 0px);
     }
@@ -88,7 +88,7 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // Circuits configuration map
+    // Circuits configuration map with unified settings
     const CIRCUITS = {
       "lucas-guerrero": {
         id: "lucas-guerrero",
@@ -196,6 +196,33 @@
         }
       }
 
+      // Convert times from strings/numbers into unified milliseconds
+      parseTimeToMs(val) {
+        if (val === undefined || val === null || val === '') return 0;
+        if (typeof val === 'number') return val;
+        
+        const str = String(val).trim();
+        if (str === '--.---' || str === '0' || str.startsWith('+') || str.startsWith('-') || str.includes('+') || str.toLowerCase().includes('l')) return 0;
+
+        const clean = str.replace(/[^0-9:.]/g, '').trim();
+        if (!clean) return 0;
+
+        const parts = clean.split(':');
+        if (parts.length === 2) {
+          const min = parseFloat(parts[0]);
+          const sec = parseFloat(parts[1]);
+          if (!isNaN(min) && !isNaN(sec)) {
+            return Math.round((min * 60 + sec) * 1000);
+          }
+        } else if (parts.length === 1) {
+          const sec = parseFloat(parts[0]);
+          if (!isNaN(sec)) {
+            return Math.round(sec * 1000);
+          }
+        }
+        return 0;
+      }
+
       async fetchRealApexData() {
         const circuit = CIRCUITS[this.activeCircuitId];
         let success = false;
@@ -240,11 +267,13 @@
             const position = Number(d.pos || d.position || d.p || (index + 1));
             const kartNumber = Number(d.kart_number || d.kart || d.number || d.no || d.num || 0);
             const name = d.name || d.driver || d.competitor || `Kart #${kartNumber}`;
-            const lastLapMs = Number(d.last_lap_ms || d.last_lap || d.last_time || 0);
-            const bestLapMs = Number(d.best_lap_ms || d.best_lap || d.best_time || 0);
+            
+            // Parse lap times and intervals dynamically
+            const lastLapMs = this.parseTimeToMs(d.last_lap_ms || d.last_lap || d.last_time);
+            const bestLapMs = this.parseTimeToMs(d.best_lap_ms || d.best_lap || d.best_time);
+            const gapLeaderMs = this.parseTimeToMs(d.gap_ms || d.gap);
+            const intervalAheadMs = this.parseTimeToMs(d.interval_ms || d.interval);
             const currentLap = Number(d.current_lap || d.laps || d.lap || 0);
-            const gapLeaderMs = Number(d.gap_ms || d.gap || 0);
-            const intervalAheadMs = Number(d.interval_ms || d.interval || 0);
 
             return {
               position,
@@ -265,6 +294,17 @@
           for (let i = 0; i < this.state.drivers.length - 1; i++) {
             this.state.drivers[i].intervalBehindMs = this.state.drivers[i + 1].intervalAheadMs;
           }
+
+          // Persist state in localStorage to prevent data loss on closure/accidental refreshes
+          try {
+            localStorage.setItem('kart_active_session_state', JSON.stringify({
+              trackName: this.state.trackName,
+              sessionName: this.state.sessionName,
+              totalLaps: this.state.totalLaps,
+              drivers: this.state.drivers,
+              timestamp: Date.now()
+            }));
+          } catch (e) {}
         }
         this.notify();
       }
@@ -361,7 +401,7 @@
     }
 
     // =========================================================================
-    // 4. PITBOARD HUD COMPONENT WITH CIRCUIT SELECTOR DROPDOWN
+    // 4. PITBOARD HUD COMPONENT WITH DYNAMIC CIRCUIT SELECTOR DROPDOWN
     // =========================================================================
     function PitboardHUD({ state, targetDriverName, onChangeCircuit, onOpenTiming, onOpenSettings }) {
       const hasDrivers = Array.isArray(state.drivers) && state.drivers.length > 0;
@@ -400,7 +440,7 @@
           {/* HEADER BAR */}
           <div className="w-full py-1.5 px-2.5 sm:px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-1.5 sm:mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-12 z-20">
             
-            {/* INTERACTIVE CIRCUIT SELECTOR DROPDOWN */}
+            {/* DYNAMIC CIRCUIT SELECTOR DROPDOWN */}
             <div className="flex items-center gap-2 overflow-hidden max-w-[55%]">
               <span className="w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-pulse shrink-0"></span>
               <select 
