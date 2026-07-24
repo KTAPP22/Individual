@@ -565,9 +565,9 @@
     }
 
     // =========================================================================
-    // 4. PITBOARD HUD COMPONENT WITH SYMMETRICAL TIMING & DUAL ORIENTATION LOCK
+    // 4. PITBOARD HUD COMPONENT (DECOUPLED MEDIA QUERIES FOR PHYSICAL ROTATION LOCK)
     // =========================================================================
-    function PitboardHUD({ state, targetDriverName, isLocked, onToggleLock, onChangeCircuit, onOpenTiming, onOpenSettings }) {
+    function PitboardHUD({ state, targetDriverName, isLocked, isViewportPortrait, onToggleLock, onChangeCircuit, onOpenTiming, onOpenSettings }) {
       const hasDrivers = Array.isArray(state.drivers) && state.drivers.length > 0;
       const currentTargetName = targetDriverName || 'Alex R.';
 
@@ -589,6 +589,9 @@
             ? `+${(deltaLastVsBest / 1000).toFixed(3)}`
             : `-${(Math.abs(deltaLastVsBest) / 1000).toFixed(3)}`;
 
+      // We determine visual layout (landscape mode) based on orientation locks
+      const isLandscapeLayout = !isViewportPortrait || isLocked;
+
       const handleToggleFullscreen = (evt) => {
         if (evt.target.closest('button') || evt.target.closest('a') || evt.target.closest('select')) return;
         const doc = document.documentElement;
@@ -599,7 +602,10 @@
       };
 
       return (
-        <div onClick={handleToggleFullscreen} className="w-screen h-screen bg-black text-white p-2 md:p-3 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer">
+        <div 
+          onClick={handleToggleFullscreen} 
+          className="w-full h-full bg-black text-white p-2 md:p-3 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer"
+        >
           
           {/* HEADER BAR */}
           <div className="w-full py-1.5 px-2.5 sm:px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-1.5 sm:mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-12 z-20">
@@ -618,9 +624,9 @@
               </select>
             </div>
             
-            {/* CENTER/RIGHT MINI ORIENTATION LOCK & TIMING CONTROLS */}
+            {/* TIMING & LOCK CONTROLS */}
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 z-30">
-              {/* MINI LOCK BUTTON (🔒 LOCKED / 🔓 UNLOCKED) */}
+              {/* LOCK BUTTON (LOCK LAYOUT IN LANDSCAPE PHYSICALLY) */}
               <button
                 type="button"
                 onClick={(e) => { e.stopPropagation(); onToggleLock(); }}
@@ -629,11 +635,11 @@
                     ? 'bg-yellow-600/20 border-yellow-500 text-yellow-300 shadow-[0_0_10px_rgba(234,179,8,0.25)]' 
                     : 'bg-gray-900 border-gray-800 text-gray-400 hover:text-white'
                 }`}
-                title={isLocked ? 'Orientación Horizontal Bloqueada' : 'Orientación Libre'}
+                title={isLocked ? 'Orientación Horizontal Bloqueada' : 'Bloquear en Horizontal'}
               >
                 <span className="mr-1 text-xs">{isLocked ? '🔒' : '🔓'}</span>
                 <span className="hidden sm:inline font-bold uppercase tracking-wider text-[10px]">
-                  {isLocked ? 'BLOQUEADO' : 'BLOQUEAR'}
+                  {isLocked ? 'HORIZ. FIJO' : 'BLOQUEAR'}
                 </span>
               </button>
 
@@ -657,10 +663,10 @@
           </div>
 
           {/* TELEMETRY GRID */}
-          <div className="w-full flex-1 grid grid-cols-1 landscape:grid-cols-12 md:grid-cols-12 gap-1.5 sm:gap-2 md:gap-3 overflow-y-auto landscape:overflow-hidden md:overflow-hidden">
+          <div className={`w-full flex-1 grid gap-1.5 sm:gap-2 md:gap-3 ${isLandscapeLayout ? 'grid-cols-12 overflow-hidden' : 'grid-cols-1 overflow-y-auto'}`}>
             
             {/* COLUMN 1: POSITION AND LAPS */}
-            <div className="landscape:col-span-3 md:col-span-3 flex flex-row landscape:flex-col md:flex-col gap-1.5 sm:gap-2 h-auto landscape:h-full md:h-full">
+            <div className={`flex gap-1.5 sm:gap-2 ${isLandscapeLayout ? 'col-span-3 flex-col h-full' : 'flex-row w-full h-auto'}`}>
               <div className="flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between items-center text-center shadow-2xl relative min-h-[110px]">
                 <span className="text-gray-400 font-black text-xs uppercase tracking-widest">POSICIÓN</span>
                 <div className="my-auto flex items-baseline justify-center">
@@ -677,7 +683,7 @@
                 </div>
               </div>
 
-              <div className="w-[40%] landscape:w-full md:w-full landscape:h-[35%] md:h-[35%] bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between items-center text-center shadow-2xl min-h-[100px]">
+              <div className={`bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between items-center text-center shadow-2xl min-h-[100px] ${isLandscapeLayout ? 'w-full h-[35%]' : 'w-[40%] h-auto'}`}>
                 <span className="text-gray-400 font-black text-xs uppercase tracking-widest">TOTAL VUELTAS</span>
                 <div className="my-auto flex items-baseline gap-1 font-mono font-black">
                   <span className="text-3xl sm:text-4xl md:text-5xl text-white">{driver ? driver.currentLap : '0'}</span>
@@ -687,7 +693,7 @@
             </div>
 
             {/* COLUMN 2: GAPS & INTERVALS */}
-            <div className="landscape:col-span-5 md:col-span-5 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl h-auto landscape:h-full md:h-full min-h-[160px]">
+            <div className={`bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl ${isLandscapeLayout ? 'col-span-5 h-full' : 'w-full h-auto min-h-[160px]'}`}>
               <span className="text-gray-400 font-black text-xs uppercase tracking-widest text-center border-b border-gray-800 pb-1">GAP E INTERVALOS (SEG)</span>
               <div className="flex-1 flex flex-col justify-around py-1.5 font-mono gap-1.5">
                 
@@ -725,7 +731,7 @@
             </div>
 
             {/* COLUMN 3: LAP TIMES */}
-            <div className="landscape:col-span-4 md:col-span-4 flex flex-col gap-1.5 sm:gap-2 h-auto landscape:h-full md:h-full">
+            <div className={`flex flex-col gap-1.5 sm:gap-2 ${isLandscapeLayout ? 'col-span-4 h-full' : 'w-full h-auto'}`}>
               <div className="flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl text-center min-h-[90px]">
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 font-black text-xs uppercase tracking-widest">ÚLTIMA VUELTA</span>
@@ -738,7 +744,7 @@
                 </div>
               </div>
 
-              <div className={`h-[40%] bg-[#0A0A0E] border-2 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl text-center min-h-[80px] ${driver && driver.isSessionBest ? 'border-purple-500' : 'border-gray-800'}`}>
+              <div className={`bg-[#0A0A0E] border-2 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl text-center min-h-[80px] ${isLandscapeLayout ? 'h-[40%]' : 'h-auto'} ${driver && driver.isSessionBest ? 'border-purple-500' : 'border-gray-800'}`}>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 font-black text-xs uppercase tracking-widest">MEJOR VUELTA</span>
                   <span className={`text-xs px-2 py-0.5 rounded font-mono font-bold ${driver && driver.isSessionBest ? 'bg-purple-600 text-white' : 'bg-emerald-500/20 text-[#00FF66]'}`}>
@@ -759,7 +765,7 @@
     }
 
     // =========================================================================
-    // 5. MAIN CONTAINER / COORDINATOR (INCLUDES ORIENTATION MONITORING OVERLAY)
+    // 5. MAIN CONTAINER / COORDINATOR (INCLUDES PHYSICAL CSS ROTATION LOCK)
     // =========================================================================
     function App() {
       const [timingState, setTimingState] = useState(apexTimingService.state);
@@ -781,7 +787,6 @@
         });
         apexTimingService.start();
 
-        // Listen for screen resize to monitor orientation changes dynamically
         const handleResize = () => {
           setIsViewportPortrait(window.innerHeight > window.innerWidth);
         };
@@ -812,7 +817,6 @@
         apexTimingService.setCircuit(circuitId);
       };
 
-      // Toggle lock status handler
       const handleToggleOrientationLock = () => {
         const newLockState = !isOrientationLocked;
         setIsOrientationLocked(newLockState);
@@ -829,16 +833,35 @@
         }
       };
 
-      // Render portrait warning overlay if rotation is locked and device rotated to portrait
-      const showPortraitLockWarning = isOrientationLocked && isViewportPortrait;
+      // Hardware rotation block: If lock is active and phone is turned to portrait,
+      // we rotate the content container by 90deg using CSS transforms to keep it landscape!
+      const shouldApplyPhysicalRotation = isOrientationLocked && isViewportPortrait;
+
+      const containerStyle = shouldApplyPhysicalRotation
+        ? {
+            position: 'absolute',
+            top: 0,
+            left: '100%',
+            width: '100vh',
+            height: '100vw',
+            transform: 'rotate(90deg)',
+            transformOrigin: 'top left',
+            overflow: 'hidden'
+          }
+        : {
+            width: '100%',
+            height: '100%',
+            overflow: 'hidden'
+          };
 
       return (
-        <div className="w-full h-full relative">
+        <div style={containerStyle} className="relative">
           {/* Main Dashboard HUD */}
           <PitboardHUD 
             state={timingState} 
             targetDriverName={targetDriverName} 
             isLocked={isOrientationLocked}
+            isViewportPortrait={isViewportPortrait}
             onToggleLock={handleToggleOrientationLock}
             onChangeCircuit={handleChangeCircuit}
             onOpenTiming={() => setIsTimingOpen(true)}
@@ -855,25 +878,6 @@
             onClose={() => setIsTimingOpen(false)} 
             activeCircuitId={timingState.activeCircuitId}
           />
-
-          {/* FULL SCREEN WARNING OVERLAY FOR FALLBACK VISUAL ORIENTATION LOCK */}
-          {showPortraitLockWarning && (
-            <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 text-center font-mono select-none">
-              <div className="text-yellow-400 text-6xl mb-4 animate-bounce">🔄</div>
-              <h2 className="text-lg sm:text-xl font-black uppercase text-white tracking-widest">ORIENTACIÓN BLOQUEADA</h2>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-xs leading-relaxed">
-                Gira el dispositivo a posición horizontal (Landscape) para continuar visualizando la telemetría en el volante.
-              </p>
-              
-              {/* OVERRIDE UNLOCK BUTTON */}
-              <button 
-                onClick={handleToggleOrientationLock}
-                className="mt-8 px-4 py-2 border-2 border-yellow-500/60 hover:border-yellow-400 text-yellow-300 text-[11px] font-black rounded-xl active:scale-95 transition-all"
-              >
-                🔓 DESBLOQUEAR MANUALMENTE
-              </button>
-            </div>
-          )}
         </div>
       );
     }
