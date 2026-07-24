@@ -1,31 +1,72 @@
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="h-full bg-black select-none">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <meta name="theme-color" content="#000000">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
+  <meta http-equiv="Pragma" content="no-cache" />
+  <meta http-equiv="Expires" content="0" />
+  <meta name="theme-color" content="#000000" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <title>Karting Live Timing HUD - Lucas Guerrero</title>
-
-  <!-- PWA Manifest -->
-  <link rel="manifest" href="./manifest.json?v=9.9.9">
-  <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23000000'/><text x='50' y='65' font-size='60' text-anchor='middle' fill='%2300FF66' font-family='monospace' font-weight='bold'>K</text></svg>">
-
+  
+  <!-- React & ReactDOM (Loaded globally for absolute stability) -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  
+  <!-- Babel for Dynamic Browser JSX compiling (Allows direct file:// execution without compilation tools) -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
-  
-  <!-- Custom Styles with Hard Cache Busting -->
-  <link rel="stylesheet" href="./src/styles.css?v=9.9.9">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            oled: '#000000',
+            cardGray: '#0A0A0E',
+            borderGray: '#1F1F24'
+          },
+          fontFamily: {
+            mono: ['"JetBrains Mono"', '"Roboto Mono"', 'Consolas', 'monospace']
+          }
+        }
+      }
+    }
+  </script>
 
-  <!-- React 18 & ReactDOM CDN (Synchronous loading guarantees availability) -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <!-- Google Fonts: Inter (Sans) and JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=JetBrains+Mono:wght@500;700;800;900&display=swap" rel="stylesheet">
+
+  <style>
+    html, body {
+      height: 100%;
+      height: 100dvh;
+      width: 100vw;
+      background-color: #000000 !important;
+      color: #ffffff;
+      overflow: hidden;
+      user-select: none;
+      -webkit-user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .safe-area-inset {
+      padding-top: env(safe-area-inset-top, 0px);
+      padding-bottom: env(safe-area-inset-bottom, 0px);
+      padding-left: env(safe-area-inset-left, 0px);
+      padding-right: env(safe-area-inset-right, 0px);
+    }
+  </style>
 </head>
-<body class="bg-black text-white antialiased overflow-hidden select-none">
-  <div id="root"></div>
+<body class="bg-black text-white antialiased overflow-hidden">
+  <div id="root" class="h-full w-full"></div>
 
-  <!-- Force disable service workers and clear legacy cache storages -->
+  <!-- Force disable service workers and clear cache storages for instant cross-device updates -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -43,21 +84,462 @@
     }
   </script>
 
-  <!-- Sequential script loading to prevent any module race conditions -->
-  <script src="./src/services/supabaseExporter.js?v=9.9.9"></script>
-  <script src="./src/services/apexTimingService.js?v=9.9.9"></script>
-  <script src="./src/components/TimingModal.js?v=9.9.9"></script>
-  <script src="./src/components/SettingsModal.js?v=9.9.9"></script>
-  <script src="./src/components/PitboardHUD.js?v=9.9.9"></script>
-  <script src="./src/app.js?v=9.9.9"></script>
+  <!-- 100% UNIFIED SINGLE-FILE REACT ENGINE (BABEL COMPILATION) -->
+  <script type="text/babel">
+    const { useState, useEffect, useRef } = React;
 
-  <!-- Initialize & Mount the React App -->
-  <script>
-    window.addEventListener('DOMContentLoaded', () => {
-      const rootElement = document.getElementById('root');
-      const root = ReactDOM.createRoot(rootElement);
-      root.render(React.createElement(window.App));
-    });
+    // =========================================================================
+    // 1. TELEMETRY CONNECTOR & PARSER (100% REAL APEX FEED - KARTÓDROMO LUCAS GUERRERO)
+    // =========================================================================
+    class ApexTimingService {
+      constructor() {
+        this.listeners = new Set();
+        this.pollTimerId = null;
+        
+        // Load target driver name from local storage or fallback to 'Alex R.'
+        this.targetDriverName = localStorage.getItem('kart_target_driver_name') || 'Alex R.';
+        this.targetKart = 14;
+
+        this.state = {
+          trackName: "Kartódromo Lucas Guerrero",
+          sessionName: "Conectando a Apex Timing...",
+          flagStatus: "GREEN",
+          totalLaps: 0,
+          isLiveConnected: false,
+          targetDriverName: this.targetDriverName,
+          matchedKartNumber: 14,
+          drivers: []
+        };
+      }
+
+      subscribe(callback) {
+        this.listeners.add(callback);
+        callback(this.state);
+        return () => this.listeners.delete(callback);
+      }
+
+      notify() {
+        this.listeners.forEach(cb => cb({ ...this.state }));
+      }
+
+      setTargetDriverName(name) {
+        if (!name) return;
+        this.targetDriverName = String(name).trim();
+        this.state.targetDriverName = this.targetDriverName;
+        localStorage.setItem('kart_target_driver_name', this.targetDriverName);
+        this.resolveTargetKart();
+        this.notify();
+      }
+
+      resolveTargetKart() {
+        if (!Array.isArray(this.state.drivers) || this.state.drivers.length === 0) return;
+        const query = this.targetDriverName.toLowerCase();
+        const matched = this.state.drivers.find(d => 
+          d.name && d.name.toLowerCase().includes(query)
+        );
+        if (matched) {
+          this.targetKart = matched.kartNumber;
+          this.state.matchedKartNumber = matched.kartNumber;
+        }
+      }
+
+      start() {
+        if (this.pollTimerId) return;
+        this.fetchRealApexData();
+        this.pollTimerId = setInterval(() => this.fetchRealApexData(), 1000);
+      }
+
+      stop() {
+        if (this.pollTimerId) {
+          clearInterval(this.pollTimerId);
+          this.pollTimerId = null;
+        }
+      }
+
+      async fetchRealApexData() {
+        const liveEndpoints = [
+          `https://live.apex-timing.com/kartodromo-lucas-guerrero/live.json`,
+          `https://www.apex-timing.com/live-timing/kartodromo-lucas-guerrero/live.json`
+        ];
+        let success = false;
+
+        for (const url of liveEndpoints) {
+          try {
+            const response = await fetch(url, { 
+              method: 'GET',
+              headers: { 'Accept': 'application/json' },
+              cache: 'no-store'
+            });
+            if (response.ok) {
+              const json = await response.json();
+              if (json && (json.drivers || json.grid || json.rows || json.session_name)) {
+                this.processRealApexJson(json);
+                success = true;
+                break;
+              }
+            }
+          } catch (err) {}
+        }
+
+        if (!success) {
+          this.state.isLiveConnected = false;
+          if (this.state.drivers.length === 0) {
+            this.state.sessionName = "Pista sin tanda activa en este momento";
+          }
+          this.notify();
+        }
+      }
+
+      processRealApexJson(data) {
+        this.state.isLiveConnected = true;
+        if (data.session_name) this.state.sessionName = data.session_name;
+        if (data.track_name) this.state.trackName = data.track_name;
+        if (data.flag) this.state.flagStatus = String(data.flag).toUpperCase();
+        if (data.total_laps) this.state.totalLaps = Number(data.total_laps);
+
+        const rawDrivers = data.drivers || data.grid || data.rows || [];
+        if (Array.isArray(rawDrivers) && rawDrivers.length > 0) {
+          this.state.drivers = rawDrivers.map((d, index) => {
+            const position = Number(d.pos || d.position || d.p || (index + 1));
+            const kartNumber = Number(d.kart_number || d.kart || d.number || d.no || d.num || 0);
+            const name = d.name || d.driver || d.competitor || `Kart #${kartNumber}`;
+            const lastLapMs = Number(d.last_lap_ms || d.last_lap || d.last_time || 0);
+            const bestLapMs = Number(d.best_lap_ms || d.best_lap || d.best_time || 0);
+            const currentLap = Number(d.current_lap || d.laps || d.lap || 0);
+            const gapLeaderMs = Number(d.gap_ms || d.gap || 0);
+            const intervalAheadMs = Number(d.interval_ms || d.interval || 0);
+
+            return {
+              position,
+              kartNumber,
+              name,
+              lastLapMs,
+              bestLapMs,
+              currentLap,
+              gapLeaderMs,
+              intervalAheadMs,
+              intervalBehindMs: 0,
+              isSessionBest: Boolean(d.is_session_best || d.sb)
+            };
+          }).sort((a, b) => a.position - b.position);
+
+          this.resolveTargetKart();
+
+          for (let i = 0; i < this.state.drivers.length - 1; i++) {
+            this.state.drivers[i].intervalBehindMs = this.state.drivers[i + 1].intervalAheadMs;
+          }
+        }
+        this.notify();
+      }
+
+      formatTime(ms) {
+        if (!ms || ms <= 0) return "--:--.---";
+        const minutes = Math.floor(ms / 60000);
+        const seconds = Math.floor((ms % 60000) / 1000);
+        const millis = ms % 1000;
+        const secStr = seconds < 10 ? `0${seconds}` : `${seconds}`;
+        const msStr = millis.toString().padStart(3, '0');
+        if (minutes > 0) return `${minutes}:${secStr}.${msStr}`;
+        return `${secStr}.${msStr}`;
+      }
+
+      formatGap(ms) {
+        if (ms === 0) return "LÍDER";
+        if (!ms || ms < 0) return "+0.000";
+        return `+${(ms / 1000).toFixed(3)}s`;
+      }
+    }
+
+    const apexTimingService = new ApexTimingService();
+
+    // =========================================================================
+    // 2. TIMING MODAL (EMBEDDED OFFICIAL TIMING IFRAME)
+    // =========================================================================
+    function TimingModal({ isOpen, onClose }) {
+      if (!isOpen) return null;
+      const apexUrl = "https://live.apex-timing.com/kartodromo-lucas-guerrero/";
+
+      return (
+        <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col w-screen h-screen overflow-hidden safe-area-inset">
+          <header className="w-full py-1.5 px-3 bg-[#0A0A0C] border-b border-gray-800 flex justify-between items-center z-10 shrink-0 h-10 font-mono">
+            <div className="flex items-center gap-2">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-pulse"></span>
+              <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-white">APEX TIMING EN VIVO - LUCAS GUERRERO</h3>
+            </div>
+            <div className="flex items-center gap-2">
+              <a href={apexUrl} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded text-[11px] text-gray-300 font-bold hidden xs:inline">↗️ PESTAÑA</a>
+              <button onClick={onClose} className="px-3 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-black tracking-wider shadow-lg">✕ CERRAR</button>
+            </div>
+          </header>
+          <div className="flex-1 w-full h-full bg-black relative overflow-hidden">
+            <iframe src={apexUrl} title="Apex Timing Live" className="w-full h-full border-0 bg-black" allow="fullscreen" />
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // 3. SETTINGS MODAL (REGISTER TARGET RACING NAME)
+    // =========================================================================
+    function SettingsModal({ isOpen, onClose, targetDriverName, onSaveDriverName }) {
+      if (!isOpen) return null;
+      const [inputName, setInputName] = useState(targetDriverName || 'Alex R.');
+
+      const handleSave = () => {
+        if (inputName.trim()) onSaveDriverName(inputName.trim());
+        onClose();
+      };
+
+      return (
+        <div className="fixed inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-4 safe-area-inset font-mono">
+          <div className="w-full max-w-md bg-[#0A0A0C] border-2 border-gray-800 rounded-2xl p-4 shadow-2xl flex flex-col gap-4 text-white">
+            <div className="flex justify-between items-center border-b border-gray-800 pb-2.5">
+              <div className="flex items-center gap-2">
+                <span className="text-lg">🏎️</span>
+                <h3 className="text-sm font-extrabold uppercase tracking-wider text-[#00FF66]">CONFIGURACIÓN DE PILOTO</h3>
+              </div>
+              <button onClick={onClose} className="text-gray-400 hover:text-white text-lg font-bold">✕</button>
+            </div>
+            <div className="flex flex-col gap-2">
+              <label className="text-xs text-gray-300 font-black uppercase tracking-wider">TU NOMBRE DE PILOTO / COMPETIDOR</label>
+              <input 
+                type="text" 
+                placeholder="Ej: Alex Rodríguez" 
+                value={inputName} 
+                onChange={(e) => setInputName(e.target.value)}
+                className="bg-black border-2 border-gray-800 rounded-xl p-3 text-sm text-[#00FF66] font-bold focus:border-[#00FF66] outline-none shadow-inner"
+              />
+              <p className="text-[11px] text-gray-400 leading-normal">
+                💡 La app buscará automáticamente tu nombre en el timing en vivo y vinculará tu kart, posición y tiempos.
+              </p>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={onClose} className="flex-1 py-2.5 rounded-xl border border-gray-800 text-xs font-bold text-gray-400 hover:bg-gray-800">CANCELAR</button>
+              <button onClick={handleSave} className="flex-1 py-2.5 rounded-xl bg-[#00FF66] text-black text-xs font-black hover:bg-emerald-400 shadow-lg uppercase tracking-wider">GUARDAR</button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // 4. PITBOARD HUD COMPONENT
+    // =========================================================================
+    function PitboardHUD({ state, targetDriverName, onOpenTiming, onOpenSettings }) {
+      const hasDrivers = Array.isArray(state.drivers) && state.drivers.length > 0;
+      const currentTargetName = targetDriverName || 'Alex R.';
+
+      const matchedIndex = hasDrivers 
+        ? state.drivers.findIndex(d => d.name && d.name.toLowerCase().includes(currentTargetName.toLowerCase()))
+        : -1;
+
+      const driver = matchedIndex !== -1 ? state.drivers[matchedIndex] : (hasDrivers ? state.drivers[0] : null);
+      const driverAhead = (matchedIndex > 0 && hasDrivers) ? state.drivers[matchedIndex - 1] : null;
+      const driverBehind = (matchedIndex >= 0 && matchedIndex < state.drivers.length - 1 && hasDrivers) ? state.drivers[matchedIndex + 1] : null;
+      const isLeader = driver ? driver.position === 1 : false;
+
+      const deltaLastVsBest = driver ? (driver.lastLapMs - driver.bestLapMs) : 0;
+      const deltaFormatted = !driver || driver.lastLapMs === 0
+        ? "--:--" 
+        : deltaLastVsBest === 0 
+          ? "RÉCORD" 
+          : deltaLastVsBest > 0 
+            ? `+${(deltaLastVsBest / 1000).toFixed(3)}`
+            : `-${(Math.abs(deltaLastVsBest) / 1000).toFixed(3)}`;
+
+      const handleToggleFullscreen = (evt) => {
+        if (evt.target.closest('button') || evt.target.closest('a')) return;
+        const doc = document.documentElement;
+        if (!document.fullscreenElement && !document.webkitFullscreenElement) {
+          if (doc.requestFullscreen) doc.requestFullscreen().catch(() => {});
+          else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+        }
+      };
+
+      return (
+        <div onClick={handleToggleFullscreen} className="w-screen h-screen bg-black text-white p-2 md:p-3 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer">
+          
+          {/* HEADER BAR */}
+          <div className="w-full py-1.5 px-2.5 sm:px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-1.5 sm:mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-11 sm:h-12 z-20">
+            <div className="flex items-center gap-2 overflow-hidden max-w-[65%]">
+              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#00FF66] animate-pulse shrink-0"></span>
+              <span className="font-black tracking-wider text-white uppercase text-xs sm:text-sm truncate">{state.trackName}</span>
+              <span className="text-gray-600 hidden md:inline">|</span>
+              <span className="text-emerald-400 font-bold text-xs truncate hidden sm:inline">PILOTO: {currentTargetName}</span>
+            </div>
+            
+            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 z-30">
+              <button 
+                type="button" 
+                onClick={(e) => { e.stopPropagation(); onOpenTiming(); }}
+                className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-[#00FF66] text-black font-mono font-black text-[11px] sm:text-xs md:text-sm rounded-lg shadow-xl hover:bg-emerald-400 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer border border-emerald-300"
+              >
+                <span className="text-xs sm:text-sm">⏱️</span>
+                <span className="uppercase tracking-wider font-black">TIMING EN VIVO</span>
+              </button>
+              <button 
+                type="button" 
+                onClick={(e) => { e.stopPropagation(); onOpenSettings(); }}
+                className="p-1 sm:p-1.5 bg-gray-900 border border-gray-800 text-gray-300 hover:text-white rounded-lg text-xs sm:text-sm transition-colors cursor-pointer"
+              >
+                ⚙️
+              </button>
+            </div>
+          </div>
+
+          {/* TELEMETRY GRID */}
+          <div className="w-full flex-1 grid grid-cols-1 landscape:grid-cols-12 md:grid-cols-12 gap-1.5 sm:gap-2 md:gap-3 overflow-y-auto landscape:overflow-hidden md:overflow-hidden">
+            
+            {/* COLUMN 1: POSITION AND LAPS */}
+            <div className="landscape:col-span-3 md:col-span-3 flex flex-row landscape:flex-col md:flex-col gap-1.5 sm:gap-2 h-auto landscape:h-full md:h-full">
+              <div className="flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between items-center text-center shadow-2xl relative min-h-[110px]">
+                <span className="text-gray-400 font-black text-xs uppercase tracking-widest">POSICIÓN</span>
+                <div className="my-auto flex items-baseline justify-center">
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-black font-mono text-gray-500 mr-1">P</span>
+                  <span className={`text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black font-mono leading-none ${isLeader ? 'text-yellow-400' : 'text-[#00FF66]'}`}>
+                    {driver ? driver.position : '--'}
+                  </span>
+                </div>
+                <div className="flex flex-col items-center gap-0.5 w-full">
+                  <span className="text-xs sm:text-sm font-mono text-white font-extrabold truncate max-w-full px-1">{driver ? driver.name : currentTargetName}</span>
+                  <span className="text-[10px] sm:text-xs font-mono text-gray-300 font-bold bg-white/10 px-2 py-0.5 rounded-md">
+                    {driver ? `KART #${driver.kartNumber}` : 'BUSCANDO KART...'}
+                  </span>
+                </div>
+              </div>
+
+              <div className="w-[40%] landscape:w-full md:w-full landscape:h-[35%] md:h-[35%] bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between items-center text-center shadow-2xl min-h-[100px]">
+                <span className="text-gray-400 font-black text-xs uppercase tracking-widest">TOTAL VUELTAS</span>
+                <div className="my-auto flex items-baseline gap-1 font-mono font-black">
+                  <span className="text-3xl sm:text-4xl md:text-5xl text-white">{driver ? driver.currentLap : '0'}</span>
+                  <span className="text-lg sm:text-xl md:text-2xl text-gray-500">/ {state.totalLaps || '--'}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* COLUMN 2: GAPS & INTERVALS */}
+            <div className="landscape:col-span-5 md:col-span-5 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl h-auto landscape:h-full md:h-full min-h-[160px]">
+              <span className="text-gray-400 font-black text-xs uppercase tracking-widest text-center border-b border-gray-800 pb-1">GAP E INTERVALOS (SEG)</span>
+              <div className="flex-1 flex flex-col justify-around py-1.5 font-mono gap-1.5">
+                
+                <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
+                  <div className="flex flex-col">
+                    <span className="text-xs sm:text-sm md:text-base font-bold text-gray-400">GAP (LÍDER)</span>
+                    <span className="text-[9px] sm:text-[10px] text-gray-500">Diferencia total</span>
+                  </div>
+                  <span className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black ${isLeader ? 'text-yellow-400' : 'text-white'}`}>
+                    {driver ? (isLeader ? 'LÍDER' : apexTimingService.formatGap(driver.gapLeaderMs)) : '--:--'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
+                  <div className="flex flex-col">
+                    <span className="text-xs sm:text-sm md:text-base font-bold text-[#00FF66]">{driverAhead ? `INTERVALO ▲ #${driverAhead.kartNumber}` : 'INTERVALO DELANTE'}</span>
+                    <span className="text-[9px] sm:text-[10px] text-gray-500">{driverAhead ? driverAhead.name : 'Kart anterior'}</span>
+                  </div>
+                  <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-[#00FF66]">
+                    {driverAhead ? apexTimingService.formatGap(driver.intervalAheadMs) : '---'}
+                  </span>
+                </div>
+
+                <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
+                  <div className="flex flex-col">
+                    <span className="text-xs sm:text-sm md:text-base font-bold text-red-400">{driverBehind ? `INTERVALO ▼ #${driverBehind.kartNumber}` : 'INTERVALO DETRÁS'}</span>
+                    <span className="text-[9px] sm:text-[10px] text-gray-500">{driverBehind ? driverBehind.name : 'Kart posterior'}</span>
+                  </div>
+                  <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-red-400">
+                    {driverBehind ? apexTimingService.formatGap(driver.intervalBehindMs) : '---'}
+                  </span>
+                </div>
+
+              </div>
+            </div>
+
+            {/* COLUMN 3: LAP TIMES */}
+            <div className="landscape:col-span-4 md:col-span-4 flex flex-col gap-1.5 sm:gap-2 h-auto landscape:h-full md:h-full">
+              <div className="flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl text-center min-h-[90px]">
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 font-black text-xs uppercase tracking-widest">ÚLTIMA VUELTA</span>
+                  <span className={`text-xs font-mono font-black ${deltaLastVsBest <= 0 ? 'text-[#00FF66]' : 'text-yellow-400'}`}>{deltaFormatted}</span>
+                </div>
+                <div className="my-auto">
+                  <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black font-mono text-white tracking-tighter">
+                    {driver ? apexTimingService.formatTime(driver.lastLapMs) : '--:--.---'}
+                  </span>
+                </div>
+              </div>
+
+              <div className={`h-[40%] bg-[#0A0A0E] border-2 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl text-center min-h-[80px] ${driver && driver.isSessionBest ? 'border-purple-500' : 'border-gray-800'}`}>
+                <div className="flex justify-between items-center">
+                  <span className="text-gray-400 font-black text-xs uppercase tracking-widest">MEJOR VUELTA</span>
+                  <span className={`text-xs px-2 py-0.5 rounded font-mono font-bold ${driver && driver.isSessionBest ? 'bg-purple-600 text-white' : 'bg-emerald-500/20 text-[#00FF66]'}`}>
+                    {driver && driver.isSessionBest ? 'SB' : 'PB'}
+                  </span>
+                </div>
+                <div className="my-auto">
+                  <span className={`text-2xl sm:text-3xl md:text-4xl font-black font-mono ${driver && driver.isSessionBest ? 'text-purple-400' : 'text-[#00FF66]'}`}>
+                    {driver ? apexTimingService.formatTime(driver.bestLapMs) : '--:--.---'}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      );
+    }
+
+    // =========================================================================
+    // 5. MAIN CONTAINER / COORDINATOR
+    // =========================================================================
+    function App() {
+      const [timingState, setTimingState] = useState(apexTimingService.state);
+      const [targetDriverName, setTargetDriverName] = useState(apexTimingService.targetDriverName);
+      const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+      const [isTimingOpen, setIsTimingOpen] = useState(false);
+
+      useEffect(() => {
+        const unsubscribe = apexTimingService.subscribe((newState) => {
+          setTimingState(newState);
+        });
+        apexTimingService.start();
+        return () => {
+          unsubscribe();
+          apexTimingService.stop();
+        };
+      }, []);
+
+      const handleSaveDriverName = (name) => {
+        setTargetDriverName(name);
+        apexTimingService.setTargetDriverName(name);
+      };
+
+      return (
+        <div className="w-full h-full relative">
+          <PitboardHUD 
+            state={timingState} 
+            targetDriverName={targetDriverName} 
+            onOpenTiming={() => setIsTimingOpen(true)}
+            onOpenSettings={() => setIsSettingsOpen(true)}
+          />
+          <SettingsModal 
+            isOpen={isSettingsOpen} 
+            onClose={() => setIsSettingsOpen(false)} 
+            targetDriverName={targetDriverName}
+            onSaveDriverName={handleSaveDriverName}
+          />
+          <TimingModal 
+            isOpen={isTimingOpen} 
+            onClose={() => setIsTimingOpen(false)} 
+          />
+        </div>
+      );
+    }
+
+    // Mount App
+    const rootElement = document.getElementById('root');
+    const root = ReactDOM.createRoot(rootElement);
+    root.render(<App />);
   </script>
 </body>
 </html>
