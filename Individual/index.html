@@ -57,7 +57,7 @@
     }
     .safe-area-inset {
       padding-top: env(safe-area-inset-top, 0px);
-      padding-bottom: env(env(safe-area-inset-bottom, 0px));
+      padding-bottom: env(safe-area-inset-bottom, 0px);
       padding-left: env(safe-area-inset-left, 0px);
       padding-right: env(safe-area-inset-right, 0px);
     }
@@ -88,45 +88,73 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
-    // Circuits configuration map with unified settings
+    // Circuits config with precise port mapping matching the successful Programa app
     const CIRCUITS = {
       "lucas-guerrero": {
         id: "lucas-guerrero",
         name: "Lucas Guerrero (Valencia)",
         url: "https://live.apex-timing.com/kartodromo-lucas-guerrero/",
-        jsonEndpoints: [
-          "https://live.apex-timing.com/kartodromo-lucas-guerrero/live.json",
-          "https://www.apex-timing.com/live-timing/kartodromo-lucas-guerrero/live.json"
-        ]
+        configPort: 9950,
+        columnMap: {
+          no: 'c4',
+          dr: 'c5',
+          llp: 'c6',
+          gap: 'c7',
+          int: 'c8',
+          blp: 'c9',
+          tlp: 'c10'
+        }
       },
       "campillos": {
         id: "campillos",
         name: "Kartcenter Campillos (Málaga)",
         url: "https://www.apex-timing.com/live-timing/kartcenter-campillos/",
-        jsonEndpoints: [
-          "https://www.apex-timing.com/live-timing/kartcenter-campillos/live.json",
-          "https://live.apex-timing.com/kartcenter-campillos/live.json"
-        ]
+        configPort: 9370,
+        columnMap: {
+          no: 'c4',
+          dr: 'c5',
+          llp: 'c9',
+          gap: 'c11',
+          int: 'c12',
+          blp: 'c10',
+          tlp: 'c13'
+        }
       }
     };
 
     // =========================================================================
-    // 1. TELEMETRY CONNECTOR & PARSER (DYNAMIC CIRCUITS INCLUDED)
+    // 1. DYNAMIC APEX CLIENT CONNECTOR (COPIED AND ADAPTED FROM PROGRAMA APP)
     // =========================================================================
     class ApexTimingService {
       constructor() {
         this.listeners = new Set();
         this.pollTimerId = null;
         
-        // Load target driver name and circuit preference from localStorage
+        // Load configurations
         this.targetDriverName = localStorage.getItem('kart_target_driver_name') || 'Alex R.';
         this.activeCircuitId = localStorage.getItem('kart_active_circuit_id') || 'lucas-guerrero';
         this.targetKart = 14;
 
+        this.configHost = 'live-data.apex-timing.com';
+        this.pollInit = 1; // Start with init payload
+        this.pollIndex = 0;
+        this.pollCounter = 0;
+        this.randomSessionId = Math.floor(Math.random() * 1000000000) || 1;
+        this.activeProxyIndex = 0;
+
+        this.corsProxies = [
+          (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+          (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+          (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
+        ];
+
+        // Maps row ID (e.g. 'r1', 'r2') to active driver data object
+        this.sessionRows = new Map();
+
         this.state = {
           activeCircuitId: this.activeCircuitId,
           trackName: CIRCUITS[this.activeCircuitId].name,
-          sessionName: "Conectando a Apex Timing...",
+          sessionName: "Esperando tanda en vivo...",
           flagStatus: "GREEN",
           totalLaps: 0,
           isLiveConnected: false,
@@ -163,6 +191,12 @@
         this.state.sessionName = "Cambiando de circuito...";
         this.state.drivers = [];
         this.state.isLiveConnected = false;
+        
+        this.pollInit = 1;
+        this.pollIndex = 0;
+        this.pollCounter = 0;
+        this.sessionRows.clear();
+        
         localStorage.setItem('kart_active_circuit_id', circuitId);
         
         // Restart polling immediately
@@ -185,8 +219,7 @@
 
       start() {
         if (this.pollTimerId) return;
-        this.fetchRealApexData();
-        this.pollTimerId = setInterval(() => this.fetchRealApexData(), 1000);
+        this.pollTimerId = setInterval(() => this.fetchRealApexData(), 2500);
       }
 
       stop() {
@@ -196,14 +229,15 @@
         }
       }
 
-      // Convert times from strings/numbers into unified milliseconds
+      // Safe text-time to milliseconds parser
       parseTimeToMs(val) {
         if (val === undefined || val === null || val === '') return 0;
         if (typeof val === 'number') return val;
         
         const str = String(val).trim();
-        if (str === '--.---' || str === '0' || str.startsWith('+') || str.startsWith('-') || str.includes('+') || str.toLowerCase().includes('l')) return 0;
+        if (str === '--.---' || str === '0' || str.toLowerCase().includes('l')) return 0;
 
+        // Clean but keep sign for gap parsing helper
         const clean = str.replace(/[^0-9:.]/g, '').trim();
         if (!clean) return 0;
 
@@ -223,71 +257,172 @@
         return 0;
       }
 
+      // Safe gap text parser
+      parseGapToMs(val) {
+        if (val === undefined || val === null || val === '') return 0;
+        const str = String(val).toLowerCase().trim();
+        if (str === 'lider' || str === 'líder' || str === '0' || str === '--.---') return 0;
+        const clean = str.replace(/[^0-9.]/g, '').trim();
+        const sec = parseFloat(clean);
+        if (!isNaN(sec)) {
+          return Math.round(sec * 1000);
+        }
+        return 0;
+      }
+
       async fetchRealApexData() {
         const circuit = CIRCUITS[this.activeCircuitId];
-        let success = false;
+        const apiPort = circuit.configPort + 4;
+        const targetUrl = `https://${this.configHost}/live-timing/commonv2/functions/live_ajax.php?version=1.0.0&init=${this.pollInit}&index=${this.pollIndex}&port=${apiPort}&counter=${this.pollCounter}&duration=100&id=${this.randomSessionId}&ignored=0`;
 
-        for (const url of circuit.jsonEndpoints) {
+        for (let pi = 0; pi < this.corsProxies.length; pi++) {
+          const proxyIdx = (this.activeProxyIndex + pi) % this.corsProxies.length;
+          const proxyUrl = this.corsProxies[proxyIdx](targetUrl);
+          
           try {
-            const response = await fetch(url, { 
-              method: 'GET',
-              headers: { 'Accept': 'application/json' },
-              cache: 'no-store'
-            });
-            if (response.ok) {
-              const json = await response.json();
-              if (json && (json.drivers || json.grid || json.rows || json.session_name)) {
-                this.processRealApexJson(json);
-                success = true;
-                break;
-              }
-            }
-          } catch (err) {}
-        }
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 4000);
 
-        if (!success) {
-          this.state.isLiveConnected = false;
-          if (this.state.drivers.length === 0) {
-            this.state.sessionName = "Pista sin tanda activa en este momento";
+            const response = await fetch(proxyUrl, { signal: controller.signal });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) continue;
+
+            const dataText = await response.text();
+            this.pollCounter += 1;
+
+            if (dataText && dataText !== 'error' && !dataText.includes('<!DOCTYPE')) {
+              const atIdx1 = dataText.indexOf('@');
+              const atIdx2 = dataText.indexOf('@', atIdx1 + 1);
+              
+              if (atIdx1 > 0 && atIdx2 > atIdx1) {
+                const newInit = parseInt(dataText.substring(0, atIdx1), 10);
+                this.pollInit = newInit || this.pollInit;
+                this.pollIndex = parseInt(dataText.substring(atIdx1 + 1, atIdx2), 10) || this.pollIndex;
+                
+                const payload = dataText.substring(atIdx2 + 1);
+                this.activeProxyIndex = proxyIdx;
+                this.processRawApexPayload(payload);
+              }
+              break; // Success
+            }
+          } catch (err) {
+            // Try next proxy on failure
           }
-          this.notify();
         }
       }
 
-      processRealApexJson(data) {
-        this.state.isLiveConnected = true;
-        if (data.session_name) this.state.sessionName = data.session_name;
-        if (data.track_name) this.state.trackName = data.track_name;
-        if (data.flag) this.state.flagStatus = String(data.flag).toUpperCase();
-        if (data.total_laps) this.state.totalLaps = Number(data.total_laps);
+      processRawApexPayload(payload) {
+        if (!payload || payload.trim() === '') return;
 
-        const rawDrivers = data.drivers || data.grid || data.rows || [];
-        if (Array.isArray(rawDrivers) && rawDrivers.length > 0) {
-          this.state.drivers = rawDrivers.map((d, index) => {
-            const position = Number(d.pos || d.position || d.p || (index + 1));
-            const kartNumber = Number(d.kart_number || d.kart || d.number || d.no || d.num || 0);
-            const name = d.name || d.driver || d.competitor || `Kart #${kartNumber}`;
+        const circuit = CIRCUITS[this.activeCircuitId];
+        const colMap = circuit.columnMap;
+        const lines = payload.split('\n');
+        let hasUpdates = false;
+
+        for (let i = 0; i < lines.length; i++) {
+          const line = lines[i].trim();
+          if (!line) continue;
+
+          const pipeIdx = line.indexOf('|');
+          if (pipeIdx < 0) continue;
+
+          const cellId = line.substring(0, pipeIdx);
+          const rest = line.substring(pipeIdx + 1);
+          const pipeIdx2 = rest.indexOf('|');
+          const valueType = pipeIdx2 >= 0 ? rest.substring(0, pipeIdx2) : rest;
+          const value = pipeIdx2 >= 0 ? rest.substring(pipeIdx2 + 1) : '';
+
+          if (cellId === 'init') {
+            this.sessionRows.clear();
+            continue;
+          }
+
+          if (cellId === 'dyn1' || cellId === 'track') {
+            const statusLower = value.toLowerCase();
+            if (statusLower.includes('chequered') || statusLower.includes('cuadros') || statusLower.includes('finish') || statusLower.includes('finaliz')) {
+              this.state.flagStatus = 'CHECKERED';
+            } else if (statusLower.includes('red') || statusLower.includes('roja')) {
+              this.state.flagStatus = 'RED';
+            } else if (statusLower.includes('yellow') || statusLower.includes('amarilla')) {
+              this.state.flagStatus = 'YELLOW';
+            } else {
+              this.state.flagStatus = 'GREEN';
+            }
+            continue;
+          }
+
+          // GRID HTML - Full table parsed on init
+          if (cellId === 'grid') {
+            try {
+              const gridHtml = rest.substring(pipeIdx2 + 1);
+              const tempDiv = document.createElement('div');
+              tempDiv.innerHTML = '<table>' + gridHtml + '</table>';
+
+              const rows = tempDiv.querySelectorAll('tr[data-id]');
+              rows.forEach(row => {
+                const rId = row.getAttribute('data-id');
+                if (!rId || rId === 'r0') return;
+
+                if (!this.sessionRows.has(rId)) {
+                  this.sessionRows.set(rId, {
+                    position: 0,
+                    kartNumber: 0,
+                    name: 'Piloto',
+                    lastLapMs: 0,
+                    bestLapMs: 0,
+                    currentLap: 0,
+                    gapLeaderMs: 0,
+                    intervalAheadMs: 0
+                  });
+                }
+                const entry = this.sessionRows.get(rId);
+
+                row.querySelectorAll('[data-id]').forEach(el => {
+                  const dataId = el.getAttribute('data-id');
+                  if (!dataId || !dataId.startsWith(rId)) return;
+                  const colSuffix = dataId.substring(rId.length);
+                  const val = el.textContent.trim();
+                  this.applyColumnValue(entry, colSuffix, val, colMap);
+                });
+              });
+              hasUpdates = true;
+            } catch(e) {}
+            continue;
+          }
+
+          // DELTA UPDATE CELL - e.g. r12c6|tn|48.120
+          if (cellId.startsWith('r') && /^r\d+/.test(cellId)) {
+            const match = cellId.match(/^(r\d+)(.+)$/);
+            if (!match) continue;
             
-            // Parse lap times and intervals dynamically
-            const lastLapMs = this.parseTimeToMs(d.last_lap_ms || d.last_lap || d.last_time);
-            const bestLapMs = this.parseTimeToMs(d.best_lap_ms || d.best_lap || d.best_time);
-            const gapLeaderMs = this.parseTimeToMs(d.gap_ms || d.gap);
-            const intervalAheadMs = this.parseTimeToMs(d.interval_ms || d.interval);
-            const currentLap = Number(d.current_lap || d.laps || d.lap || 0);
+            const rowId = match[1];
+            const suffix = match[2];
 
-            return {
-              position,
-              kartNumber,
-              name,
-              lastLapMs,
-              bestLapMs,
-              currentLap,
-              gapLeaderMs,
-              intervalAheadMs,
-              intervalBehindMs: 0,
-              isSessionBest: Boolean(d.is_session_best || d.sb)
-            };
-          }).sort((a, b) => a.position - b.position);
+            if (!this.sessionRows.has(rowId)) {
+              this.sessionRows.set(rowId, {
+                position: 0,
+                kartNumber: 0,
+                name: 'Piloto',
+                lastLapMs: 0,
+                bestLapMs: 0,
+                currentLap: 0,
+                gapLeaderMs: 0,
+                intervalAheadMs: 0
+              });
+            }
+            const entry = this.sessionRows.get(rowId);
+            if (this.applyColumnValue(entry, suffix, value, colMap)) {
+              hasUpdates = true;
+            }
+          }
+        }
+
+        if (hasUpdates) {
+          this.state.isLiveConnected = true;
+          this.state.drivers = Array.from(this.sessionRows.values())
+            .filter(d => d.kartNumber > 0)
+            .sort((a, b) => a.position - b.position);
 
           this.resolveTargetKart();
 
@@ -295,18 +430,71 @@
             this.state.drivers[i].intervalBehindMs = this.state.drivers[i + 1].intervalAheadMs;
           }
 
-          // Persist state in localStorage to prevent data loss on closure/accidental refreshes
-          try {
-            localStorage.setItem('kart_active_session_state', JSON.stringify({
-              trackName: this.state.trackName,
-              sessionName: this.state.sessionName,
-              totalLaps: this.state.totalLaps,
-              drivers: this.state.drivers,
-              timestamp: Date.now()
-            }));
-          } catch (e) {}
+          this.notify();
         }
-        this.notify();
+      }
+
+      applyColumnValue(entry, colSuffix, value, colMap) {
+        if (!colSuffix) return false;
+        
+        // Position cell
+        if (colSuffix === 'c1' || colSuffix === 'c2' || colSuffix === 'c3') {
+          const pos = parseInt(value.replace(/[^\d]/g, ''), 10);
+          if (!isNaN(pos)) {
+            entry.position = pos;
+            return true;
+          }
+        }
+
+        // Kart Number
+        if (colSuffix === colMap.no) {
+          const kn = parseInt(value.replace(/[^\d]/g, ''), 10);
+          if (!isNaN(kn)) {
+            entry.kartNumber = kn;
+            return true;
+          }
+        }
+
+        // Driver Name
+        if (colSuffix === colMap.dr) {
+          entry.name = value.replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+          return true;
+        }
+
+        // Last Lap
+        if (colSuffix === colMap.llp) {
+          entry.lastLapMs = this.parseTimeToMs(value);
+          return true;
+        }
+
+        // Best Lap
+        if (colSuffix === colMap.blp) {
+          entry.bestLapMs = this.parseTimeToMs(value);
+          return true;
+        }
+
+        // Total Laps
+        if (colSuffix === colMap.tlp) {
+          const l = parseInt(value.replace(/[^\d]/g, ''), 10);
+          if (!isNaN(l)) {
+            entry.currentLap = l;
+            return true;
+          }
+        }
+
+        // Gap
+        if (colSuffix === colMap.gap) {
+          entry.gapLeaderMs = this.parseGapToMs(value);
+          return true;
+        }
+
+        // Interval
+        if (colSuffix === colMap.int) {
+          entry.intervalAheadMs = this.parseGapToMs(value);
+          return true;
+        }
+
+        return false;
       }
 
       formatTime(ms) {
@@ -401,7 +589,7 @@
     }
 
     // =========================================================================
-    // 4. PITBOARD HUD COMPONENT WITH DYNAMIC CIRCUIT SELECTOR DROPDOWN
+    // 4. PITBOARD HUD COMPONENT
     // =========================================================================
     function PitboardHUD({ state, targetDriverName, onChangeCircuit, onOpenTiming, onOpenSettings }) {
       const hasDrivers = Array.isArray(state.drivers) && state.drivers.length > 0;
