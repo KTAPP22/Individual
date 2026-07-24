@@ -10,7 +10,7 @@
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <title>Karting Live Timing HUD - Lucas Guerrero</title>
+  <title>Karting Live Timing HUD - Lucas Guerrero & Campillos</title>
   
   <!-- React & ReactDOM (Loaded globally for absolute stability) -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
@@ -88,20 +88,44 @@
   <script type="text/babel">
     const { useState, useEffect, useRef } = React;
 
+    // Circuits configuration map
+    const CIRCUITS = {
+      "lucas-guerrero": {
+        id: "lucas-guerrero",
+        name: "Lucas Guerrero (Valencia)",
+        url: "https://live.apex-timing.com/kartodromo-lucas-guerrero/",
+        jsonEndpoints: [
+          "https://live.apex-timing.com/kartodromo-lucas-guerrero/live.json",
+          "https://www.apex-timing.com/live-timing/kartodromo-lucas-guerrero/live.json"
+        ]
+      },
+      "campillos": {
+        id: "campillos",
+        name: "Kartcenter Campillos (Málaga)",
+        url: "https://www.apex-timing.com/live-timing/kartcenter-campillos/",
+        jsonEndpoints: [
+          "https://www.apex-timing.com/live-timing/kartcenter-campillos/live.json",
+          "https://live.apex-timing.com/kartcenter-campillos/live.json"
+        ]
+      }
+    };
+
     // =========================================================================
-    // 1. TELEMETRY CONNECTOR & PARSER (100% REAL APEX FEED - KARTÓDROMO LUCAS GUERRERO)
+    // 1. TELEMETRY CONNECTOR & PARSER (DYNAMIC CIRCUITS INCLUDED)
     // =========================================================================
     class ApexTimingService {
       constructor() {
         this.listeners = new Set();
         this.pollTimerId = null;
         
-        // Load target driver name from local storage or fallback to 'Alex R.'
+        // Load target driver name and circuit preference from localStorage
         this.targetDriverName = localStorage.getItem('kart_target_driver_name') || 'Alex R.';
+        this.activeCircuitId = localStorage.getItem('kart_active_circuit_id') || 'lucas-guerrero';
         this.targetKart = 14;
 
         this.state = {
-          trackName: "Kartódromo Lucas Guerrero",
+          activeCircuitId: this.activeCircuitId,
+          trackName: CIRCUITS[this.activeCircuitId].name,
           sessionName: "Conectando a Apex Timing...",
           flagStatus: "GREEN",
           totalLaps: 0,
@@ -131,6 +155,22 @@
         this.notify();
       }
 
+      setCircuit(circuitId) {
+        if (!CIRCUITS[circuitId]) return;
+        this.activeCircuitId = circuitId;
+        this.state.activeCircuitId = circuitId;
+        this.state.trackName = CIRCUITS[circuitId].name;
+        this.state.sessionName = "Cambiando de circuito...";
+        this.state.drivers = [];
+        this.state.isLiveConnected = false;
+        localStorage.setItem('kart_active_circuit_id', circuitId);
+        
+        // Restart polling immediately
+        this.stop();
+        this.start();
+        this.notify();
+      }
+
       resolveTargetKart() {
         if (!Array.isArray(this.state.drivers) || this.state.drivers.length === 0) return;
         const query = this.targetDriverName.toLowerCase();
@@ -157,13 +197,10 @@
       }
 
       async fetchRealApexData() {
-        const liveEndpoints = [
-          `https://live.apex-timing.com/kartodromo-lucas-guerrero/live.json`,
-          `https://www.apex-timing.com/live-timing/kartodromo-lucas-guerrero/live.json`
-        ];
+        const circuit = CIRCUITS[this.activeCircuitId];
         let success = false;
 
-        for (const url of liveEndpoints) {
+        for (const url of circuit.jsonEndpoints) {
           try {
             const response = await fetch(url, { 
               method: 'GET',
@@ -253,18 +290,19 @@
     const apexTimingService = new ApexTimingService();
 
     // =========================================================================
-    // 2. TIMING MODAL (EMBEDDED OFFICIAL TIMING IFRAME)
+    // 2. TIMING MODAL (EMBEDDED OFFICIAL TIMING IFRAME - DYNAMIC BY SELECTED TRACK)
     // =========================================================================
-    function TimingModal({ isOpen, onClose }) {
+    function TimingModal({ isOpen, onClose, activeCircuitId }) {
       if (!isOpen) return null;
-      const apexUrl = "https://live.apex-timing.com/kartodromo-lucas-guerrero/";
+      const circuit = CIRCUITS[activeCircuitId] || CIRCUITS["lucas-guerrero"];
+      const apexUrl = circuit.url;
 
       return (
         <div className="fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col w-screen h-screen overflow-hidden safe-area-inset">
           <header className="w-full py-1.5 px-3 bg-[#0A0A0C] border-b border-gray-800 flex justify-between items-center z-10 shrink-0 h-10 font-mono">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-pulse"></span>
-              <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-white">APEX TIMING EN VIVO - LUCAS GUERRERO</h3>
+              <h3 className="text-xs md:text-sm font-extrabold uppercase tracking-wider text-white">APEX TIMING - {circuit.name.toUpperCase()}</h3>
             </div>
             <div className="flex items-center gap-2">
               <a href={apexUrl} target="_blank" rel="noopener noreferrer" className="px-2.5 py-1 bg-gray-800 hover:bg-gray-700 rounded text-[11px] text-gray-300 font-bold hidden xs:inline">↗️ PESTAÑA</a>
@@ -323,9 +361,9 @@
     }
 
     // =========================================================================
-    // 4. PITBOARD HUD COMPONENT
+    // 4. PITBOARD HUD COMPONENT WITH CIRCUIT SELECTOR DROPDOWN
     // =========================================================================
-    function PitboardHUD({ state, targetDriverName, onOpenTiming, onOpenSettings }) {
+    function PitboardHUD({ state, targetDriverName, onChangeCircuit, onOpenTiming, onOpenSettings }) {
       const hasDrivers = Array.isArray(state.drivers) && state.drivers.length > 0;
       const currentTargetName = targetDriverName || 'Alex R.';
 
@@ -348,7 +386,7 @@
             : `-${(Math.abs(deltaLastVsBest) / 1000).toFixed(3)}`;
 
       const handleToggleFullscreen = (evt) => {
-        if (evt.target.closest('button') || evt.target.closest('a')) return;
+        if (evt.target.closest('button') || evt.target.closest('a') || evt.target.closest('select')) return;
         const doc = document.documentElement;
         if (!document.fullscreenElement && !document.webkitFullscreenElement) {
           if (doc.requestFullscreen) doc.requestFullscreen().catch(() => {});
@@ -360,12 +398,20 @@
         <div onClick={handleToggleFullscreen} className="w-screen h-screen bg-black text-white p-2 md:p-3 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer">
           
           {/* HEADER BAR */}
-          <div className="w-full py-1.5 px-2.5 sm:px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-1.5 sm:mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-11 sm:h-12 z-20">
-            <div className="flex items-center gap-2 overflow-hidden max-w-[65%]">
-              <span className="w-2.5 h-2.5 sm:w-3 sm:h-3 rounded-full bg-[#00FF66] animate-pulse shrink-0"></span>
-              <span className="font-black tracking-wider text-white uppercase text-xs sm:text-sm truncate">{state.trackName}</span>
-              <span className="text-gray-600 hidden md:inline">|</span>
-              <span className="text-emerald-400 font-bold text-xs truncate hidden sm:inline">PILOTO: {currentTargetName}</span>
+          <div className="w-full py-1.5 px-2.5 sm:px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-1.5 sm:mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-12 z-20">
+            
+            {/* INTERACTIVE CIRCUIT SELECTOR DROPDOWN */}
+            <div className="flex items-center gap-2 overflow-hidden max-w-[55%]">
+              <span className="w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-pulse shrink-0"></span>
+              <select 
+                value={state.activeCircuitId} 
+                onChange={(e) => { e.stopPropagation(); onChangeCircuit(e.target.value); }}
+                className="bg-black border-2 border-gray-800 rounded-lg px-2 py-1 text-white text-xs sm:text-sm font-extrabold focus:border-[#00FF66] outline-none cursor-pointer"
+              >
+                {Object.values(CIRCUITS).map(c => (
+                  <option key={c.id} value={c.id} className="bg-black text-white font-mono font-bold">{c.name}</option>
+                ))}
+              </select>
             </div>
             
             <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 z-30">
@@ -375,7 +421,7 @@
                 className="px-2.5 sm:px-3 py-1 sm:py-1.5 bg-[#00FF66] text-black font-mono font-black text-[11px] sm:text-xs md:text-sm rounded-lg shadow-xl hover:bg-emerald-400 active:scale-95 transition-all flex items-center gap-1 sm:gap-1.5 cursor-pointer border border-emerald-300"
               >
                 <span className="text-xs sm:text-sm">⏱️</span>
-                <span className="uppercase tracking-wider font-black">TIMING EN VIVO</span>
+                <span className="uppercase tracking-wider font-black">TIMING</span>
               </button>
               <button 
                 type="button" 
@@ -514,11 +560,16 @@
         apexTimingService.setTargetDriverName(name);
       };
 
+      const handleChangeCircuit = (circuitId) => {
+        apexTimingService.setCircuit(circuitId);
+      };
+
       return (
         <div className="w-full h-full relative">
           <PitboardHUD 
             state={timingState} 
             targetDriverName={targetDriverName} 
+            onChangeCircuit={handleChangeCircuit}
             onOpenTiming={() => setIsTimingOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
           />
@@ -531,6 +582,7 @@
           <TimingModal 
             isOpen={isTimingOpen} 
             onClose={() => setIsTimingOpen(false)} 
+            activeCircuitId={timingState.activeCircuitId}
           />
         </div>
       );
