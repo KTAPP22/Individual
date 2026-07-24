@@ -1,5 +1,4 @@
 import { apexTimingService } from './services/apexTimingService.js';
-import { FlagBanner } from './components/FlagBanner.js';
 import { PitboardHUD } from './components/PitboardHUD.js';
 import { Leaderboard } from './components/Leaderboard.js';
 import { KartAnalysis } from './components/KartAnalysis.js';
@@ -33,28 +32,18 @@ export function App() {
     apexTimingService.setTargetKart(kartNum);
   };
 
-  const handleFlagChange = (flag) => {
-    apexTimingService.setFlagStatus(flag);
-  };
-
   return e(
     'div',
     { className: 'w-full h-full flex flex-col bg-black text-white overflow-hidden' },
-    
-    // Top Track Flag Banner (Ultra-compact in landscape)
-    e(FlagBanner, {
-      flagStatus: timingState.flagStatus,
-      onFlagChange: handleFlagChange
-    }),
 
-    // Header Navigation Bar
+    // Header Navigation Bar (Ultra Minimalist)
     e(
       'header',
-      { className: 'px-2 py-1 bg-[#0A0A0C] border-b border-[#1E1E24] flex justify-between items-center z-20' },
+      { className: 'px-2 py-0.5 bg-[#0A0A0C] border-b border-gray-800 flex justify-between items-center z-20 h-7' },
       e('div', { className: 'flex items-center gap-1.5' },
-        e('div', { className: 'w-2.5 h-2.5 rounded-full bg-emerald-400 animate-ping' }),
-        e('span', { className: 'font-display font-extrabold text-xs tracking-wider text-white' }, 'APEX'),
-        e('span', { className: 'font-mono text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1 py-0.2 rounded' }, 'HUD')
+        e('div', { className: 'w-2 h-2 rounded-full bg-[#00FF66]' }),
+        e('span', { className: 'font-display font-extrabold text-[11px] tracking-wider text-white' }, 'APEX'),
+        e('span', { className: 'font-mono text-[9px] text-[#00FF66] font-bold bg-emerald-500/10 px-1 rounded' }, 'HUD')
       ),
 
       // Target Kart Selector Quick Badge
@@ -62,27 +51,20 @@ export function App() {
         'button',
         {
           onClick: () => setIsSettingsOpen(true),
-          className: 'px-2 py-0.5 bg-gray-900 border border-gray-800 hover:border-emerald-500/50 rounded-lg flex items-center gap-1 transition-colors'
+          className: 'px-2 py-0.5 bg-gray-900 border border-gray-800 rounded flex items-center gap-1'
         },
         e('span', { className: 'text-[9px] text-gray-400 font-mono uppercase' }, 'MI KART:'),
-        e('span', { className: 'text-xs font-mono font-black text-emerald-400' }, `#${targetKart}`)
+        e('span', { className: 'text-xs font-mono font-black text-[#00FF66]' }, `#${targetKart}`)
       ),
 
-      // Header Controls
-      e('div', { className: 'flex items-center gap-1.5' },
-        e(
-          'span',
-          { className: 'text-[9px] font-mono text-gray-400 hidden sm:inline' },
-          '🔄 MODO HORIZONTAL / VOLANTE'
-        ),
-        e(
-          'button',
-          {
-            onClick: () => setIsSettingsOpen(true),
-            className: 'p-1 rounded bg-gray-900 border border-gray-800 text-gray-300 text-xs hover:text-white'
-          },
-          '⚙️'
-        )
+      // Settings Icon
+      e(
+        'button',
+        {
+          onClick: () => setIsSettingsOpen(true),
+          className: 'px-1.5 py-0.5 rounded bg-gray-900 border border-gray-800 text-gray-300 text-xs'
+        },
+        '⚙️'
       )
     ),
 
@@ -98,36 +80,33 @@ export function App() {
     // Bottom Navigation Bar
     e(
       'nav',
-      { className: 'w-full py-1 px-2 bg-[#0A0A0C] border-t border-[#1E1E24] grid grid-cols-3 gap-1.5 z-20' },
+      { className: 'w-full py-1 px-2 bg-[#0A0A0C] border-t border-gray-800 grid grid-cols-3 gap-1.5 z-20 h-9' },
       
       e('button', {
         onClick: () => setActiveTab('HUD'),
-        className: `py-1 rounded-lg flex flex-col items-center justify-center transition-all ${
-          activeTab === 'HUD' ? 'bg-emerald-500 text-black font-black shadow-lg shadow-emerald-500/20' : 'bg-gray-900/60 text-gray-400 font-bold hover:text-white'
+        className: `py-0.5 rounded flex items-center justify-center gap-1 transition-all ${
+          activeTab === 'HUD' ? 'bg-[#00FF66] text-black font-black' : 'bg-gray-900/60 text-gray-400 font-bold'
         }`
       },
-        e('span', { className: 'text-[11px] font-mono tracking-wider' }, '🏁 VOLANTE'),
-        e('span', { className: 'text-[8px] uppercase opacity-80' }, 'HUD Horizontal')
+        e('span', { className: 'text-xs font-mono tracking-wider' }, '🏁 VOLANTE')
       ),
 
       e('button', {
         onClick: () => setActiveTab('LEADERBOARD'),
-        className: `py-1 rounded-lg flex flex-col items-center justify-center transition-all ${
-          activeTab === 'LEADERBOARD' ? 'bg-emerald-500 text-black font-black shadow-lg shadow-emerald-500/20' : 'bg-gray-900/60 text-gray-400 font-bold hover:text-white'
+        className: `py-0.5 rounded flex items-center justify-center gap-1 transition-all ${
+          activeTab === 'LEADERBOARD' ? 'bg-[#00FF66] text-black font-black' : 'bg-gray-900/60 text-gray-400 font-bold'
         }`
       },
-        e('span', { className: 'text-[11px] font-mono tracking-wider' }, '📊 TIEMPOS'),
-        e('span', { className: 'text-[8px] uppercase opacity-80' }, 'Leaderboard')
+        e('span', { className: 'text-xs font-mono tracking-wider' }, '📊 TIEMPOS')
       ),
 
       e('button', {
         onClick: () => setActiveTab('KARTS'),
-        className: `py-2 rounded-lg flex flex-col items-center justify-center transition-all ${
-          activeTab === 'KARTS' ? 'bg-emerald-500 text-black font-black shadow-lg shadow-emerald-500/20' : 'bg-gray-900/60 text-gray-400 font-bold hover:text-white'
+        className: `py-0.5 rounded flex items-center justify-center gap-1 transition-all ${
+          activeTab === 'KARTS' ? 'bg-[#00FF66] text-black font-black' : 'bg-gray-900/60 text-gray-400 font-bold'
         }`
       },
-        e('span', { className: 'text-[11px] font-mono tracking-wider' }, '🏎️ KARTS'),
-        e('span', { className: 'text-[8px] uppercase opacity-80' }, 'Análisis Ritmo')
+        e('span', { className: 'text-xs font-mono tracking-wider' }, '🏎️ KARTS')
       )
     ),
 
