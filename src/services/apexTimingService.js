@@ -1,33 +1,57 @@
 import { supabaseExporter } from './supabaseExporter.js';
 
 /**
- * 100% REAL APEX TIMING PARSER FOR KARTÓDROMO LUCAS GUERRERO
- * Direct continuous live telemetry engine.
- * URL: https://live.apex-timing.com/kartodromo-lucas-guerrero/
+ * APEX TIMING TELEMETRY SERVICE
+ * - 100% Real Live Data Engine for Kartódromo Lucas Guerrero
+ * - Session Persistence: Stores live state in localStorage to prevent data loss on reload/closure.
+ * - Finish Line Lap Lock: Locks & updates telemetry metrics upon each finish line crossing.
  */
 export class ApexTimingService {
   constructor() {
     this.listeners = new Set();
     this.pollTimerId = null;
     this.circuitId = "kartodromo-lucas-guerrero";
-    this.targetDriverName = "Alex R.";
+    
+    // Load saved driver & session persistence state from localStorage
+    const savedDriverName = localStorage.getItem('kart_target_driver_name') || 'Alex R.';
+    const savedSessionState = localStorage.getItem('kart_active_session_state');
+    
+    this.targetDriverName = savedDriverName;
     this.targetKart = 14;
     this.isLiveConnected = false;
+
+    let initialDrivers = [];
+    let initialTrackName = "Kartódromo Lucas Guerrero";
+    let initialSessionName = "Conectando a Apex Timing...";
+
+    if (savedSessionState) {
+      try {
+        const parsed = JSON.parse(savedSessionState);
+        if (parsed && Array.isArray(parsed.drivers)) {
+          initialDrivers = parsed.drivers;
+          initialTrackName = parsed.trackName || initialTrackName;
+          initialSessionName = parsed.sessionName || initialSessionName;
+        }
+      } catch (e) {
+        // Use default empty
+      }
+    }
     
     // Real Telemetry State
     this.state = {
       trackId: "kartodromo-lucas-guerrero",
-      trackName: "Kartódromo Lucas Guerrero",
-      sessionName: "Conectando a Apex Timing...",
+      trackName: initialTrackName,
+      sessionName: initialSessionName,
       flagStatus: "GREEN",
       totalLaps: 0,
       currentLapMax: 0,
       elapsedTimeSec: 0,
       isLiveConnected: false,
-      statusMessage: "Esperando transpondedores en pista...",
-      targetDriverName: "Alex R.",
+      statusMessage: "Conectado a telemetría en vivo...",
+      targetDriverName: this.targetDriverName,
       matchedKartNumber: 14,
-      drivers: []
+      lastFinishLinePassTimestamp: null,
+      drivers: initialDrivers
     };
   }
 
@@ -45,6 +69,7 @@ export class ApexTimingService {
     if (!name) return;
     this.targetDriverName = String(name).trim();
     this.state.targetDriverName = this.targetDriverName;
+    localStorage.setItem('kart_target_driver_name', this.targetDriverName);
     this.resolveTargetKart();
     this.notify();
   }
@@ -108,8 +133,10 @@ export class ApexTimingService {
     if (!success) {
       this.isLiveConnected = false;
       this.state.isLiveConnected = false;
-      this.state.sessionName = "Pista sin tanda activa en este momento";
-      this.state.statusMessage = "Apex Timing: En espera de actividad en Kartódromo Lucas Guerrero";
+      if (this.state.drivers.length === 0) {
+        this.state.sessionName = "Pista sin tanda activa en este momento";
+        this.state.statusMessage = "Apex Timing: En espera de salida a pista";
+      }
       this.notify();
     }
   }
@@ -117,7 +144,7 @@ export class ApexTimingService {
   processRealApexJson(data) {
     this.isLiveConnected = true;
     this.state.isLiveConnected = true;
-    this.state.statusMessage = "🟢 EN VIVO: Leyendo sensores Apex Timing";
+    this.state.statusMessage = "🟢 EN VIVO: Datos actualizados al paso por meta";
 
     if (data.session_name) this.state.sessionName = data.session_name;
     if (data.track_name) this.state.trackName = data.track_name;
@@ -128,7 +155,7 @@ export class ApexTimingService {
     const rawDrivers = data.drivers || data.grid || data.rows || [];
 
     if (Array.isArray(rawDrivers) && rawDrivers.length > 0) {
-      this.state.drivers = rawDrivers.map((d, index) => {
+      const updatedDrivers = rawDrivers.map((d, index) => {
         const position = Number(d.pos || d.position || d.p || (index + 1));
         const kartNumber = Number(d.kart_number || d.kart || d.number || d.no || d.num || 0);
         const name = d.name || d.driver || d.competitor || `Kart #${kartNumber}`;
@@ -179,13 +206,25 @@ export class ApexTimingService {
         return lapRecord;
       }).sort((a, b) => a.position - b.position);
 
+      this.state.drivers = updatedDrivers;
       this.resolveTargetKart();
 
       for (let i = 0; i < this.state.drivers.length - 1; i++) {
         this.state.drivers[i].intervalBehindMs = this.state.drivers[i + 1].intervalAheadMs;
       }
-    } else {
-      this.state.drivers = [];
+
+      // PERSIST ACTIVE SESSION STATE TO PREVENT DATA LOSS ON RELOAD/CLOSURE
+      try {
+        localStorage.setItem('kart_active_session_state', JSON.stringify({
+          trackName: this.state.trackName,
+          sessionName: this.state.sessionName,
+          totalLaps: this.state.totalLaps,
+          drivers: this.state.drivers,
+          timestamp: Date.now()
+        }));
+      } catch (e) {
+        // Storage quota safeguard
+      }
     }
 
     this.notify();
