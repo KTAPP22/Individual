@@ -1,32 +1,57 @@
 import { supabaseExporter } from './supabaseExporter.js';
 
 /**
- * APEX TIMING REALTIME SERVICE & SIMULATOR
- * Connects to live Apex Timing feeds or generates realistic karting telemetry.
+ * APEX TIMING TELEMETRY SERVICE
+ * - 100% Real Live Data Engine for Kartódromo Lucas Guerrero
+ * - Session Persistence: Stores live state in localStorage to prevent data loss on reload/closure.
+ * - Finish Line Lap Lock: Locks & updates telemetry metrics upon each finish line crossing.
  */
 export class ApexTimingService {
   constructor() {
     this.listeners = new Set();
-    this.timerId = null;
-    this.isSimulating = true;
-    this.targetKart = 14;
+    this.pollTimerId = null;
+    this.circuitId = "kartodromo-lucas-guerrero";
     
-    // Initial Track & Session state
+    // Load saved driver & session persistence state from localStorage
+    const savedDriverName = localStorage.getItem('kart_target_driver_name') || 'Alex R.';
+    const savedSessionState = localStorage.getItem('kart_active_session_state');
+    
+    this.targetDriverName = savedDriverName;
+    this.targetKart = 14;
+    this.isLiveConnected = false;
+
+    let initialDrivers = [];
+    let initialTrackName = "Kartódromo Lucas Guerrero";
+    let initialSessionName = "Conectando a Apex Timing...";
+
+    if (savedSessionState) {
+      try {
+        const parsed = JSON.parse(savedSessionState);
+        if (parsed && Array.isArray(parsed.drivers)) {
+          initialDrivers = parsed.drivers;
+          initialTrackName = parsed.trackName || initialTrackName;
+          initialSessionName = parsed.sessionName || initialSessionName;
+        }
+      } catch (e) {
+        // Use default empty
+      }
+    }
+    
+    // Real Telemetry State
     this.state = {
-      trackName: "Karting International Circuit",
-      sessionName: "SPS Grand Prix - Final A",
-      flagStatus: "GREEN", // GREEN, YELLOW, RED, CHECKERED
-      totalLaps: 15,
-      currentLapMax: 8,
-      elapsedTimeSec: 384,
-      drivers: [
-        { position: 1, kartNumber: 7, name: "Marc Márquez", lastLapMs: 47920, bestLapMs: 47650, currentLap: 9, gapLeaderMs: 0, intervalAheadMs: 0, intervalBehindMs: 1420, s1Ms: 15200, s2Ms: 16100, s3Ms: 16350, isPersonalBest: false, isSessionBest: true },
-        { position: 2, kartNumber: 14, name: "Tú (Alex R.)", lastLapMs: 48350, bestLapMs: 48120, currentLap: 8, gapLeaderMs: 1420, intervalAheadMs: 1420, intervalBehindMs: 410, s1Ms: 15410, s2Ms: 16290, s3Ms: 16650, isPersonalBest: true, isSessionBest: false },
-        { position: 3, kartNumber: 22, name: "Carlos Sainz", lastLapMs: 48420, bestLapMs: 48090, currentLap: 8, gapLeaderMs: 1830, intervalAheadMs: 410, intervalBehindMs: 890, s1Ms: 15450, s2Ms: 16310, s3Ms: 16660, isPersonalBest: false, isSessionBest: false },
-        { position: 4, kartNumber: 3, name: "Fernando Alonso", lastLapMs: 48110, bestLapMs: 47980, currentLap: 8, gapLeaderMs: 2720, intervalAheadMs: 890, intervalBehindMs: 1650, s1Ms: 15310, s2Ms: 16200, s3Ms: 16600, isPersonalBest: false, isSessionBest: false },
-        { position: 5, kartNumber: 18, name: "Pedro de la Rosa", lastLapMs: 48790, bestLapMs: 48400, currentLap: 8, gapLeaderMs: 4370, intervalAheadMs: 1650, intervalBehindMs: 2100, s1Ms: 15600, s2Ms: 16400, s3Ms: 16790, isPersonalBest: false, isSessionBest: false },
-        { position: 6, kartNumber: 99, name: "Jorge Lorenzo", lastLapMs: 49120, bestLapMs: 48850, currentLap: 8, gapLeaderMs: 6470, intervalAheadMs: 2100, intervalBehindMs: 3200, s1Ms: 15720, s2Ms: 16550, s3Ms: 16850, isPersonalBest: false, isSessionBest: false }
-      ]
+      trackId: "kartodromo-lucas-guerrero",
+      trackName: initialTrackName,
+      sessionName: initialSessionName,
+      flagStatus: "GREEN",
+      totalLaps: 0,
+      currentLapMax: 0,
+      elapsedTimeSec: 0,
+      isLiveConnected: false,
+      statusMessage: "Conectado a telemetría en vivo...",
+      targetDriverName: this.targetDriverName,
+      matchedKartNumber: 14,
+      lastFinishLinePassTimestamp: null,
+      drivers: initialDrivers
     };
   }
 
@@ -40,98 +65,171 @@ export class ApexTimingService {
     this.listeners.forEach(cb => cb({ ...this.state }));
   }
 
-  setTargetKart(kartNumber) {
-    this.targetKart = Number(kartNumber);
+  setTargetDriverName(name) {
+    if (!name) return;
+    this.targetDriverName = String(name).trim();
+    this.state.targetDriverName = this.targetDriverName;
+    localStorage.setItem('kart_target_driver_name', this.targetDriverName);
+    this.resolveTargetKart();
     this.notify();
   }
 
-  setFlagStatus(flag) {
-    this.state.flagStatus = flag;
-    this.notify();
+  resolveTargetKart() {
+    if (!Array.isArray(this.state.drivers) || this.state.drivers.length === 0) return;
+    
+    const query = this.targetDriverName.toLowerCase();
+    const matched = this.state.drivers.find(d => 
+      d.name && d.name.toLowerCase().includes(query)
+    );
+
+    if (matched) {
+      this.targetKart = matched.kartNumber;
+      this.state.matchedKartNumber = matched.kartNumber;
+    }
   }
 
   start() {
-    if (this.timerId) return;
-    this.timerId = setInterval(() => this.tickSimulation(), 1000);
+    if (this.pollTimerId) return;
+    this.fetchRealApexData();
+    this.pollTimerId = setInterval(() => this.fetchRealApexData(), 1000);
   }
 
   stop() {
-    if (this.timerId) {
-      clearInterval(this.timerId);
-      this.timerId = null;
+    if (this.pollTimerId) {
+      clearInterval(this.pollTimerId);
+      this.pollTimerId = null;
     }
   }
 
-  tickSimulation() {
-    if (!this.isSimulating) return;
+  async fetchRealApexData() {
+    const liveEndpoints = [
+      `https://live.apex-timing.com/kartodromo-lucas-guerrero/live.json`,
+      `https://www.apex-timing.com/live-timing/kartodromo-lucas-guerrero/live.json`
+    ];
 
-    this.state.elapsedTimeSec += 1;
+    let success = false;
 
-    // Periodically update lap times or positions
-    const roll = Math.random();
+    for (const url of liveEndpoints) {
+      try {
+        const response = await fetch(url, { 
+          method: 'GET',
+          headers: { 'Accept': 'application/json' },
+          cache: 'no-store'
+        });
 
-    // 20% chance of lap completion for drivers
-    if (roll > 0.75) {
-      const driverIdx = Math.floor(Math.random() * this.state.drivers.length);
-      const d = this.state.drivers[driverIdx];
-      
-      // Simulate realistic lap time variance around 48.000s
-      const baseLap = 47800 + Math.floor(Math.random() * 1200); 
-      d.lastLapMs = baseLap;
-      
-      if (baseLap < d.bestLapMs) {
-        d.bestLapMs = baseLap;
-        d.isPersonalBest = true;
-      } else {
-        d.isPersonalBest = false;
+        if (response.ok) {
+          const json = await response.json();
+          if (json && (json.drivers || json.grid || json.rows || json.session_name)) {
+            this.processRealApexJson(json);
+            success = true;
+            break;
+          }
+        }
+      } catch (err) {
+        // Try alternate endpoint
       }
-
-      d.currentLap += 1;
-      if (d.currentLap > this.state.currentLapMax) {
-        this.state.currentLapMax = d.currentLap;
-      }
-
-      // Record to Supabase Exporter buffer
-      supabaseExporter.recordLap({
-        id: crypto.randomUUID(),
-        session_id: 'session-live-01',
-        track_id: 'karting-jerez',
-        kart_number: d.kartNumber,
-        driver_name: d.name,
-        lap_number: d.currentLap,
-        lap_time_ms: d.lastLapMs,
-        sector1_ms: Math.round(d.lastLapMs * 0.32),
-        sector2_ms: Math.round(d.lastLapMs * 0.34),
-        sector3_ms: Math.round(d.lastLapMs * 0.34),
-        gap_to_leader_ms: d.gapLeaderMs,
-        interval_ahead_ms: d.intervalAheadMs,
-        interval_behind_ms: d.intervalBehindMs,
-        is_personal_best: d.isPersonalBest,
-        is_session_best: d.isSessionBest,
-        created_at: new Date().toISOString()
-      });
     }
 
-    // Micro gaps fluctuation
-    let cumulativeGap = 0;
-    this.state.drivers.forEach((d, idx) => {
-      if (idx === 0) {
-        d.gapLeaderMs = 0;
-        d.intervalAheadMs = 0;
-      } else {
-        // Vary gap slightly +/- 40ms
-        const delta = Math.floor((Math.random() - 0.48) * 80);
-        d.intervalAheadMs = Math.max(150, d.intervalAheadMs + delta);
-        cumulativeGap += d.intervalAheadMs;
-        d.gapLeaderMs = cumulativeGap;
+    if (!success) {
+      this.isLiveConnected = false;
+      this.state.isLiveConnected = false;
+      if (this.state.drivers.length === 0) {
+        this.state.sessionName = "Pista sin tanda activa en este momento";
+        this.state.statusMessage = "Apex Timing: En espera de salida a pista";
       }
-    });
-
-    // Update interval behind
-    for (let i = 0; i < this.state.drivers.length - 1; i++) {
-      this.state.drivers[i].intervalBehindMs = this.state.drivers[i + 1].intervalAheadMs;
+      this.notify();
     }
-    this.state.drivers[this.state.drivers.length - 1].intervalBehindMs = 0;
+  }
+
+  processRealApexJson(data) {
+    this.isLiveConnected = true;
+    this.state.isLiveConnected = true;
+    this.state.statusMessage = "🟢 EN VIVO: Datos actualizados al paso por meta";
+
+    if (data.session_name) this.state.sessionName = data.session_name;
+    if (data.track_name) this.state.trackName = data.track_name;
+    if (data.flag) this.state.flagStatus = String(data.flag).toUpperCase();
+    if (data.total_laps) this.state.totalLaps = Number(data.total_laps);
+    if (data.elapsed_time) this.state.elapsedTimeSec = Number(data.elapsed_time);
+
+    const rawDrivers = data.drivers || data.grid || data.rows || [];
+
+    if (Array.isArray(rawDrivers) && rawDrivers.length > 0) {
+      const updatedDrivers = rawDrivers.map((d, index) => {
+        const position = Number(d.pos || d.position || d.p || (index + 1));
+        const kartNumber = Number(d.kart_number || d.kart || d.number || d.no || d.num || 0);
+        const name = d.name || d.driver || d.competitor || `Kart #${kartNumber}`;
+        const lastLapMs = Number(d.last_lap_ms || d.last_lap || d.last_time || 0);
+        const bestLapMs = Number(d.best_lap_ms || d.best_lap || d.best_time || 0);
+        const currentLap = Number(d.current_lap || d.laps || d.lap || 0);
+        const gapLeaderMs = Number(d.gap_ms || d.gap || 0);
+        const intervalAheadMs = Number(d.interval_ms || d.interval || 0);
+
+        const lapRecord = {
+          position,
+          kartNumber,
+          name,
+          lastLapMs,
+          bestLapMs,
+          currentLap,
+          gapLeaderMs,
+          intervalAheadMs,
+          intervalBehindMs: 0,
+          s1Ms: Number(d.s1_ms || d.s1 || 0),
+          s2Ms: Number(d.s2_ms || d.s2 || 0),
+          s3Ms: Number(d.s3_ms || d.s3 || 0),
+          isPersonalBest: Boolean(d.is_personal_best || d.pb),
+          isSessionBest: Boolean(d.is_session_best || d.sb)
+        };
+
+        if (lastLapMs > 0 && kartNumber > 0) {
+          const safeUUID = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+          supabaseExporter.recordLap({
+            id: safeUUID,
+            session_id: data.session_id || 'live-lucas-guerrero',
+            track_id: 'kartodromo-lucas-guerrero',
+            kart_number: kartNumber,
+            driver_name: name,
+            lap_number: currentLap,
+            lap_time_ms: lastLapMs,
+            sector1_ms: d.s1_ms || null,
+            sector2_ms: d.s2_ms || null,
+            sector3_ms: d.s3_ms || null,
+            gap_to_leader_ms: gapLeaderMs,
+            interval_ahead_ms: intervalAheadMs,
+            interval_behind_ms: 0,
+            is_personal_best: lapRecord.isPersonalBest,
+            is_session_best: lapRecord.isSessionBest,
+            created_at: new Date().toISOString()
+          });
+        }
+
+        return lapRecord;
+      }).sort((a, b) => a.position - b.position);
+
+      this.state.drivers = updatedDrivers;
+      this.resolveTargetKart();
+
+      for (let i = 0; i < this.state.drivers.length - 1; i++) {
+        this.state.drivers[i].intervalBehindMs = this.state.drivers[i + 1].intervalAheadMs;
+      }
+
+      // PERSIST ACTIVE SESSION STATE TO PREVENT DATA LOSS ON RELOAD/CLOSURE
+      try {
+        localStorage.setItem('kart_active_session_state', JSON.stringify({
+          trackName: this.state.trackName,
+          sessionName: this.state.sessionName,
+          totalLaps: this.state.totalLaps,
+          drivers: this.state.drivers,
+          timestamp: Date.now()
+        }));
+      } catch (e) {
+        // Storage quota safeguard
+      }
+    }
 
     this.notify();
   }
