@@ -1,22 +1,21 @@
 import { supabaseExporter } from './supabaseExporter.js';
 
 /**
- * APEX TIMING REALTIME SERVICE - KARTÓDROMO INTERNACIONAL LUCAS GUERRERO
- * Live Timing Adapter for Kartódromo Lucas Guerrero (Chiva, Valencia, Spain)
- * Apex Timing ID: kartodromolucasguerrero
+ * APEX TIMING REALTIME SERVICE - KARTÓDROMO LUCAS GUERRERO
+ * URL: https://live.apex-timing.com/kartodromo-lucas-guerrero/
  */
 export class ApexTimingService {
   constructor() {
     this.listeners = new Set();
     this.timerId = null;
-    this.circuitId = "kartodromolucasguerrero";
+    this.circuitId = "kartodromo-lucas-guerrero";
     this.targetKart = 14;
     this.isLiveConnected = false;
     
     // Track State for Kartódromo Lucas Guerrero
     this.state = {
-      trackId: "kartodromolucasguerrero",
-      trackName: "Kartódromo Lucas Guerrero (Valencia)",
+      trackId: "kartodromo-lucas-guerrero",
+      trackName: "Kartódromo Lucas Guerrero",
       sessionName: "Tanda Libres - Lucas Guerrero",
       flagStatus: "GREEN",
       totalLaps: 15,
@@ -49,11 +48,7 @@ export class ApexTimingService {
 
   start() {
     if (this.timerId) return;
-    
-    // Attempt live fetch from Apex Timing Lucas Guerrero feed
     this.connectLiveApexTiming();
-
-    // Telemetry tick every 1000ms
     this.timerId = setInterval(() => this.tickDataFeed(), 1000);
   }
 
@@ -66,7 +61,7 @@ export class ApexTimingService {
 
   async connectLiveApexTiming() {
     try {
-      const liveUrl = `https://www.apex-timing.com/live-timing/${this.circuitId}/live.json`;
+      const liveUrl = `https://live.apex-timing.com/${this.circuitId}/live.json`;
       const res = await fetch(liveUrl, { mode: 'cors' });
       if (res.ok) {
         const liveData = await res.json();
@@ -76,7 +71,6 @@ export class ApexTimingService {
         }
       }
     } catch (e) {
-      // Fallback to high-fidelity Lucas Guerrero track simulator when no live race is active
       this.isLiveConnected = false;
     }
   }
@@ -91,13 +85,11 @@ export class ApexTimingService {
   tickDataFeed() {
     this.state.elapsedTimeSec += 1;
 
-    // Simulate telemetry ticks for Lucas Guerrero track length (~1.4 km)
     const roll = Math.random();
     if (roll > 0.75) {
       const driverIdx = Math.floor(Math.random() * this.state.drivers.length);
       const d = this.state.drivers[driverIdx];
       
-      // Lucas Guerrero lap times average around 47.8s to 49.2s
       const baseLap = 47700 + Math.floor(Math.random() * 1400); 
       d.lastLapMs = baseLap;
       
@@ -113,11 +105,10 @@ export class ApexTimingService {
         this.state.currentLapMax = d.currentLap;
       }
 
-      // Record to Supabase Exporter
       supabaseExporter.recordLap({
         id: crypto.randomUUID(),
         session_id: 'session-lucas-guerrero-01',
-        track_id: 'kartodromolucasguerrero',
+        track_id: 'kartodromo-lucas-guerrero',
         kart_number: d.kartNumber,
         driver_name: d.name,
         lap_number: d.currentLap,
@@ -134,7 +125,6 @@ export class ApexTimingService {
       });
     }
 
-    // Micro gaps fluctuation
     let cumulativeGap = 0;
     this.state.drivers.forEach((d, idx) => {
       if (idx === 0) {
@@ -148,7 +138,6 @@ export class ApexTimingService {
       }
     });
 
-    // Update interval behind
     for (let i = 0; i < this.state.drivers.length - 1; i++) {
       this.state.drivers[i].intervalBehindMs = this.state.drivers[i + 1].intervalAheadMs;
     }
