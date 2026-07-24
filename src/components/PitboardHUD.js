@@ -41,49 +41,55 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
       className: 'w-screen h-screen bg-black text-white p-2 md:p-3 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer' 
     },
 
-    // 100% IDENTICAL HEADER BAR ON BOTH PC DESKTOP AND MOBILE
+    // 100% IDENTICAL PROMINENT HEADER BAR ON BOTH PC DESKTOP AND MOBILE
     e(
       'div',
-      { className: 'w-full py-1 px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-11' },
+      { className: 'w-full py-1.5 px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-12 z-20' },
       
       // LEFT SIDE: CIRCUIT STATUS & NAME
-      e('div', { className: 'flex items-center gap-2' },
-        e('span', { className: 'w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-pulse shrink-0' }),
-        e('span', { className: 'font-black tracking-wider text-white uppercase text-xs sm:text-sm truncate' }, state.trackName || 'Kartódromo Lucas Guerrero'),
+      e('div', { className: 'flex items-center gap-2 overflow-hidden' },
+        e('span', { className: 'w-3 h-3 rounded-full bg-[#00FF66] animate-pulse shrink-0' }),
+        e('span', { className: 'font-black tracking-wider text-white uppercase text-xs md:text-sm truncate' }, state.trackName || 'Kartódromo Lucas Guerrero'),
         e('span', { className: 'text-gray-600 hidden sm:inline' }, '|'),
         e('span', { className: 'text-emerald-400 font-bold text-xs hidden sm:inline truncate' }, state.sessionName || 'Esperando tanda en vivo...')
       ),
 
-      // RIGHT SIDE: SYMMETRICALLY ALIGNED TIMING BUTTON & GEAR CONFIG
-      e('div', { className: 'flex items-center gap-2 shrink-0' },
+      // RIGHT SIDE: PROMINENT TIMING BUTTON & SETTINGS ICON (ALWAYS VISIBLE ON ALL SCREENS)
+      e('div', { className: 'flex items-center gap-2 shrink-0 z-30' },
         e(
           'button',
           {
+            type: 'button',
             onClick: (evt) => {
               evt.stopPropagation();
-              onOpenTiming();
+              if (typeof onOpenTiming === 'function') {
+                onOpenTiming();
+              }
             },
-            className: 'px-2.5 py-1 bg-[#00FF66] text-black font-mono font-black text-xs rounded-lg shadow-lg hover:bg-emerald-400 active:scale-95 transition-all flex items-center gap-1.5'
+            className: 'px-3 py-1.5 bg-[#00FF66] text-black font-mono font-black text-xs md:text-sm rounded-lg shadow-xl hover:bg-emerald-400 active:scale-95 transition-all flex items-center gap-1.5 cursor-pointer border border-emerald-300'
           },
-          e('span', null, '⏱️'),
-          e('span', { className: 'uppercase tracking-wider font-extrabold text-[11px] sm:text-xs' }, 'TIMING EN VIVO')
+          e('span', { className: 'text-sm' }, '⏱️'),
+          e('span', { className: 'uppercase tracking-wider font-black text-xs md:text-sm' }, 'TIMING EN VIVO')
         ),
 
         e(
           'button',
           {
+            type: 'button',
             onClick: (evt) => {
               evt.stopPropagation();
-              onOpenSettings();
+              if (typeof onOpenSettings === 'function') {
+                onOpenSettings();
+              }
             },
-            className: 'p-1 bg-gray-900 border border-gray-800 text-gray-300 hover:text-white rounded-lg text-xs transition-colors'
+            className: 'p-1.5 bg-gray-900 border border-gray-800 text-gray-300 hover:text-white rounded-lg text-xs md:text-sm transition-colors cursor-pointer'
           },
           '⚙️'
         )
       )
     ),
 
-    // 100% IDENTICAL 3-COLUMN LAYOUT ON BOTH PC DESKTOP AND MOBILE
+    // 100% IDENTICAL 3-COLUMN TELEMETRY GRID ON BOTH PC DESKTOP AND MOBILE
     e(
       'div',
       { className: 'w-full flex-1 grid grid-cols-12 gap-2 md:gap-3' },
