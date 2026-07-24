@@ -1,8 +1,6 @@
-import React from 'https://esm.sh/react@18.2.0';
-
 const e = React.createElement;
 
-export function TimingModal({ isOpen, onClose }) {
+window.TimingModal = function TimingModal({ isOpen, onClose }) {
   if (!isOpen) return null;
 
   const apexUrl = "https://live.apex-timing.com/kartodromo-lucas-guerrero/";
@@ -56,4 +54,4 @@ export function TimingModal({ isOpen, onClose }) {
       })
     )
   );
-}
+};

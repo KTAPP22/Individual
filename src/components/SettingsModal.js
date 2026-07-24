@@ -1,8 +1,6 @@
-import React from 'https://esm.sh/react@18.2.0';
-
 const e = React.createElement;
 
-export function SettingsModal({ isOpen, onClose, targetDriverName, onSaveDriverName, apexService }) {
+window.SettingsModal = function SettingsModal({ isOpen, onClose, targetDriverName, onSaveDriverName, apexService }) {
   if (!isOpen) return null;
 
   const [inputName, setInputName] = React.useState(targetDriverName || 'Alex R.');
@@ -82,4 +80,4 @@ export function SettingsModal({ isOpen, onClose, targetDriverName, onSaveDriverN
       )
     )
   );
-}
+};

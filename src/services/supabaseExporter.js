@@ -2,17 +2,13 @@
  * Phase 2 Supabase Data Exporter Interface
  * Prepares the pipeline to persist live Apex Timing telemetry into Supabase PostgreSQL.
  */
-
-export class SupabaseExporter {
+class SupabaseExporter {
   constructor() {
     this.client = null;
     this.isConfigured = false;
     this.queuedLaps = [];
   }
 
-  /**
-   * Initialize Supabase client when API credentials are provided in Phase 2
-   */
   init(supabaseUrl, supabaseAnonKey) {
     if (supabaseUrl && supabaseAnonKey && window.supabase) {
       this.client = window.supabase.createClient(supabaseUrl, supabaseAnonKey);
@@ -24,9 +20,6 @@ export class SupabaseExporter {
     }
   }
 
-  /**
-   * Records a lap for historical kart pace analysis
-   */
   async recordLap(lapRecord) {
     if (this.isConfigured && this.client) {
       try {
@@ -40,14 +33,10 @@ export class SupabaseExporter {
         this.queuedLaps.push(lapRecord);
       }
     } else {
-      // Buffer in memory for export or phase 2 connection
       this.queuedLaps.push(lapRecord);
     }
   }
 
-  /**
-   * Flushes queued local laps to remote database
-   */
   async flushQueue() {
     if (!this.isConfigured || !this.client || this.queuedLaps.length === 0) return;
     const itemsToUpload = [...this.queuedLaps];
@@ -61,36 +50,24 @@ export class SupabaseExporter {
     }
   }
 
-  /**
-   * Calculates kart speed index based on accumulated historical laps
-   */
   getBufferedKartRankings() {
     const kartsMap = {};
-    
     this.queuedLaps.forEach(lap => {
       if (!kartsMap[lap.kart_number]) {
-        kartsMap[lap.kart_number] = {
-          kartNumber: lap.kart_number,
-          laps: [],
-          bestTime: lap.lap_time_ms
-        };
+        kartsMap[lap.kart_number] = { name: lap.driver_name, laps: 0, bestLap: Infinity };
       }
-      kartsMap[lap.kart_number].laps.push(lap.lap_time_ms);
-      if (lap.lap_time_ms < kartsMap[lap.kart_number].bestTime) {
-        kartsMap[lap.kart_number].bestTime = lap.lap_time_ms;
+      kartsMap[lap.kart_number].laps++;
+      if (lap.lap_time_ms < kartsMap[lap.kart_number].bestLap) {
+        kartsMap[lap.kart_number].bestLap = lap.lap_time_ms;
       }
     });
-
-    return Object.values(kartsMap).map(k => {
-      const avgMs = k.laps.reduce((a, b) => a + b, 0) / k.laps.length;
-      return {
-        kartNumber: k.kartNumber,
-        totalLaps: k.laps.length,
-        bestTimeMs: k.bestTime,
-        avgTimeMs: Math.round(avgMs)
-      };
-    }).sort((a, b) => a.bestTimeMs - b.bestTimeMs);
+    return Object.keys(kartsMap).map(k => ({
+      kart: k,
+      name: kartsMap[k].name,
+      laps: kartsMap[k].laps,
+      bestLap: kartsMap[k].bestLap
+    })).sort((a, b) => a.bestLap - b.bestLap);
   }
 }
 
-export const supabaseExporter = new SupabaseExporter();
+window.supabaseExporter = new SupabaseExporter();

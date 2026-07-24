@@ -17,11 +17,15 @@
   
   <!-- Custom Styles with Hard Cache Busting -->
   <link rel="stylesheet" href="./src/styles.css?v=9.9.9">
+
+  <!-- React 18 & ReactDOM CDN (Synchronous loading guarantees availability) -->
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 </head>
 <body class="bg-black text-white antialiased overflow-hidden select-none">
   <div id="root"></div>
 
-  <!-- Aggressively WIPE OUT any Service Worker and Cache to force loading fresh code on PC & Mobile -->
+  <!-- Force disable service workers and clear legacy cache storages -->
   <script>
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
@@ -39,15 +43,21 @@
     }
   </script>
 
-  <!-- Main Application Entry Script with Hard Cache Busting and ESM Imports -->
-  <script type="module">
-    import React from 'https://esm.sh/react@18.2.0';
-    import ReactDOM from 'https://esm.sh/react-dom@18.2.0';
-    import { App } from './src/app.js?v=9.9.9';
+  <!-- Sequential script loading to prevent any module race conditions -->
+  <script src="./src/services/supabaseExporter.js?v=9.9.9"></script>
+  <script src="./src/services/apexTimingService.js?v=9.9.9"></script>
+  <script src="./src/components/TimingModal.js?v=9.9.9"></script>
+  <script src="./src/components/SettingsModal.js?v=9.9.9"></script>
+  <script src="./src/components/PitboardHUD.js?v=9.9.9"></script>
+  <script src="./src/app.js?v=9.9.9"></script>
 
-    const rootElement = document.getElementById('root');
-    const root = ReactDOM.createRoot(rootElement);
-    root.render(React.createElement(App));
+  <!-- Initialize & Mount the React App -->
+  <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const rootElement = document.getElementById('root');
+      const root = ReactDOM.createRoot(rootElement);
+      root.render(React.createElement(window.App));
+    });
   </script>
 </body>
 </html>

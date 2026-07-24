@@ -1,12 +1,9 @@
-import { supabaseExporter } from './supabaseExporter.js';
-
 /**
  * APEX TIMING TELEMETRY SERVICE
  * - 100% Real Live Data Engine for Kartódromo Lucas Guerrero
  * - Session Persistence: Stores live state in localStorage to prevent data loss on reload/closure.
- * - Finish Line Lap Lock: Locks & updates telemetry metrics upon each finish line crossing.
  */
-export class ApexTimingService {
+class ApexTimingService {
   constructor() {
     this.listeners = new Set();
     this.pollTimerId = null;
@@ -182,12 +179,12 @@ export class ApexTimingService {
           isSessionBest: Boolean(d.is_session_best || d.sb)
         };
 
-        if (lastLapMs > 0 && kartNumber > 0) {
+        if (lastLapMs > 0 && kartNumber > 0 && window.supabaseExporter) {
           const safeUUID = 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
             const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
             return v.toString(16);
           });
-          supabaseExporter.recordLap({
+          window.supabaseExporter.recordLap({
             id: safeUUID,
             session_id: data.session_id || 'live-lucas-guerrero',
             track_id: 'kartodromo-lucas-guerrero',
@@ -256,4 +253,4 @@ export class ApexTimingService {
   }
 }
 
-export const apexTimingService = new ApexTimingService();
+window.apexTimingService = new ApexTimingService();
