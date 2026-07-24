@@ -11,7 +11,7 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
 
   const isLeader = driver ? driver.position === 1 : false;
 
-  // Delta calculation
+  // Delta calculation between last lap and best lap
   const deltaLastVsBest = driver ? (driver.lastLapMs - driver.bestLapMs) : 0;
   const deltaFormatted = !driver || driver.lastLapMs === 0
     ? "--:--" 
@@ -41,7 +41,7 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
       className: 'w-screen h-screen bg-black text-white p-2 md:p-3 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer' 
     },
 
-    // 100% IDENTICAL PROMINENT HEADER BAR ON BOTH PC DESKTOP AND MOBILE
+    // UNIFIED PROMINENT HEADER BAR (PC & MOBILE)
     e(
       'div',
       { className: 'w-full py-1.5 px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-12 z-20' },
@@ -54,7 +54,7 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
         e('span', { className: 'text-emerald-400 font-bold text-xs hidden sm:inline truncate' }, state.sessionName || 'Esperando tanda en vivo...')
       ),
 
-      // RIGHT SIDE: PROMINENT TIMING BUTTON & SETTINGS ICON (ALWAYS VISIBLE ON ALL SCREENS)
+      // RIGHT SIDE: PROMINENT TIMING BUTTON & SETTINGS ICON
       e('div', { className: 'flex items-center gap-2 shrink-0 z-30' },
         e(
           'button',
@@ -89,19 +89,19 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
       )
     ),
 
-    // 100% IDENTICAL 3-COLUMN TELEMETRY GRID ON BOTH PC DESKTOP AND MOBILE
+    // 100% UNIFIED TELEMETRY GRID DISPLAYING ALL 6 TIMING FIELDS
     e(
       'div',
       { className: 'w-full flex-1 grid grid-cols-12 gap-2 md:gap-3' },
 
       // ==========================================
-      // COLUMNA 1 (3/12): POSICIÓN Y VUELTAS
+      // BLOQUE 1 (3/12): POSICIÓN, KART, PILOTO Y TOTAL DE VUELTAS
       // ==========================================
       e(
         'div',
         { className: 'col-span-3 flex flex-col justify-between gap-2 h-full' },
         
-        // POSICIÓN
+        // POSICIÓN, NÚMERO DE KART Y NOMBRE DEL PILOTO
         e(
           'div',
           { className: 'flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between items-center text-center shadow-2xl relative' },
@@ -116,14 +116,19 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
               driver ? driver.position : '--'
             )
           ),
-          e('span', { className: 'text-xs sm:text-sm font-mono text-gray-200 font-extrabold bg-white/10 px-2.5 py-0.5 rounded-lg' }, driver ? `KART #${driver.kartNumber}` : `KART #${targetKart}`)
+          
+          // NOMBRE DEL PILOTO Y NÚMERO DE KART
+          e('div', { className: 'flex flex-col items-center gap-0.5 w-full' },
+            e('span', { className: 'text-xs sm:text-sm font-mono text-white font-extrabold truncate max-w-full px-1' }, driver ? driver.name : 'Piloto'),
+            e('span', { className: 'text-[11px] sm:text-xs font-mono text-gray-300 font-bold bg-white/10 px-2 py-0.5 rounded-md' }, driver ? `KART #${driver.kartNumber}` : `KART #${targetKart}`)
+          )
         ),
 
-        // VUELTAS
+        // TOTAL DE VUELTAS
         e(
           'div',
-          { className: 'h-[35%] bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between items-center text-center shadow-2xl' },
-          e('span', { className: 'text-gray-400 font-black text-xs uppercase tracking-widest' }, 'VUELTAS'),
+          { className: 'h-[33%] bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between items-center text-center shadow-2xl' },
+          e('span', { className: 'text-gray-400 font-black text-xs uppercase tracking-widest' }, 'TOTAL VUELTAS'),
           e(
             'div',
             { className: 'my-auto flex items-baseline gap-1 font-mono font-black' },
@@ -134,22 +139,25 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
       ),
 
       // ==========================================
-      // COLUMNA 2 (5/12): DIFERENCIAS EN VIVO (SEG)
+      // BLOQUE 2 (5/12): GAP (LÍDER) E INTERVALOS (DELANTE / DETRÁS)
       // ==========================================
       e(
         'div',
         { className: 'col-span-5 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl h-full' },
-        e('span', { className: 'text-gray-400 font-black text-xs uppercase tracking-widest text-center border-b border-gray-800 pb-1' }, 'DIFERENCIAS EN VIVO (SEG)'),
+        e('span', { className: 'text-gray-400 font-black text-xs uppercase tracking-widest text-center border-b border-gray-800 pb-1' }, 'GAP E INTERVALOS (SEG)'),
         
         e(
           'div',
           { className: 'flex-1 flex flex-col justify-around py-1.5 font-mono gap-1.5' },
 
-          // LÍDER
+          // GAP AL LÍDER
           e(
             'div',
             { className: 'flex justify-between items-center bg-black/80 px-3 sm:px-4 py-2 rounded-xl border border-gray-800' },
-            e('span', { className: 'text-xs sm:text-sm md:text-base font-bold text-gray-400' }, 'LÍDER CARRERA'),
+            e('div', { className: 'flex flex-col' },
+              e('span', { className: 'text-xs sm:text-sm md:text-base font-bold text-gray-400' }, 'GAP (LÍDER)'),
+              e('span', { className: 'text-[10px] text-gray-500' }, 'Diferencia total')
+            ),
             e(
               'span',
               { className: `text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black ${isLeader ? 'text-yellow-400' : 'text-white'}` },
@@ -157,11 +165,14 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
             )
           ),
 
-          // DELANTE
+          // INTERVALO CON KART DELANTE (▲)
           e(
             'div',
             { className: 'flex justify-between items-center bg-black/80 px-3 sm:px-4 py-2 rounded-xl border border-gray-800' },
-            e('span', { className: 'text-xs sm:text-sm md:text-base font-bold text-[#00FF66]' }, driverAhead ? `▲ KART #${driverAhead.kartNumber}` : 'DELANTE'),
+            e('div', { className: 'flex flex-col' },
+              e('span', { className: 'text-xs sm:text-sm md:text-base font-bold text-[#00FF66]' }, driverAhead ? `INTERVALO ▲ #${driverAhead.kartNumber}` : 'INTERVALO DELANTE'),
+              e('span', { className: 'text-[10px] text-gray-500' }, driverAhead ? driverAhead.name : 'Kart anterior')
+            ),
             e(
               'span',
               { className: 'text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-[#00FF66]' },
@@ -169,11 +180,14 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
             )
           ),
 
-          // DETRÁS
+          // INTERVALO CON KART DETRÁS (▼)
           e(
             'div',
             { className: 'flex justify-between items-center bg-black/80 px-3 sm:px-4 py-2 rounded-xl border border-gray-800' },
-            e('span', { className: 'text-xs sm:text-sm md:text-base font-bold text-red-400' }, driverBehind ? `▼ KART #${driverBehind.kartNumber}` : 'DETRÁS'),
+            e('div', { className: 'flex flex-col' },
+              e('span', { className: 'text-xs sm:text-sm md:text-base font-bold text-red-400' }, driverBehind ? `INTERVALO ▼ #${driverBehind.kartNumber}` : 'INTERVALO DETRÁS'),
+              e('span', { className: 'text-[10px] text-gray-500' }, driverBehind ? driverBehind.name : 'Kart posterior')
+            ),
             e(
               'span',
               { className: 'text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-red-400' },
@@ -184,7 +198,7 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
       ),
 
       // ==========================================
-      // COLUMNA 3 (4/12): TIEMPOS DE VUELTA REALES
+      // BLOQUE 3 (4/12): ÚLTIMA VUELTA Y MEJOR VUELTA
       // ==========================================
       e(
         'div',
