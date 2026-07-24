@@ -21,13 +21,13 @@ export function PitboardHUD({ state, targetKart, apexService }) {
     'div',
     { className: 'w-full h-full bg-black text-white p-2 flex flex-col justify-between overflow-hidden select-none safe-area-inset' },
     
-    // FULLY RESPONSIVE GRID SYSTEM (PC / TABLET / MOBILE PORTRAIT / MOBILE LANDSCAPE)
+    // PURE DEDICATED RESPONSIVE TELEMETRY GRID
     e(
       'div',
       { className: 'w-full h-full grid grid-cols-1 landscape:grid-cols-12 md:grid-cols-12 gap-2' },
 
       // ==========================================
-      // BLOQUE 1: POSICIÓN Y VUELTAS (PC: 3 cols / Land: 3 cols / Port: Full width)
+      // BLOQUE 1: POSICIÓN Y VUELTAS (3/12)
       // ==========================================
       e(
         'div',
@@ -66,7 +66,7 @@ export function PitboardHUD({ state, targetKart, apexService }) {
       ),
 
       // ==========================================
-      // BLOQUE 2: DIFERENCIAS / GAPS (PC: 5 cols / Land: 5 cols / Port: Full width)
+      // BLOQUE 2: DIFERENCIAS / GAPS (5/12)
       // ==========================================
       e(
         'div',
@@ -101,7 +101,7 @@ export function PitboardHUD({ state, targetKart, apexService }) {
             )
           ),
 
-          // DETRÁS
+          // DETRÁS (CLEAN DUAL DISPLAY WITHOUT ATTACK WARNINGS)
           e(
             'div',
             { className: 'flex justify-between items-center bg-black/60 px-3 py-2 rounded-lg border border-gray-800' },
@@ -116,7 +116,7 @@ export function PitboardHUD({ state, targetKart, apexService }) {
       ),
 
       // ==========================================
-      // BLOQUE 3: TIEMPOS DE VUELTA (PC: 4 cols / Land: 4 cols / Port: Full width)
+      // BLOQUE 3: TIEMPOS DE VUELTA (4/12)
       // ==========================================
       e(
         'div',
