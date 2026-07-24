@@ -1,9 +1,10 @@
 import { supabaseExporter } from './supabaseExporter.js';
 
 /**
- * 100% REAL APEX TIMING PARSER FOR KARTÓDROMO LUCAS GUERRERO
- * Driver Name Matching & Live Position/Kart Tracking Engine
- * URL: https://live.apex-timing.com/kartodromo-lucas-guerrero/
+ * 100% REAL APEX TIMING PARSER - LUCAS GUERRERO
+ * - Start Trigger: Waits for first Finish Line crossing (Meta).
+ * - Finish Trigger: Detects Checkered Flag (Bandera a cuadros) and saves session results.
+ * - History Persistence: Saves finished race results into dropdown history.
  */
 export class ApexTimingService {
   constructor() {
@@ -13,20 +14,28 @@ export class ApexTimingService {
     this.targetDriverName = "Alex R.";
     this.targetKart = 14;
     this.isLiveConnected = false;
-    
+    this.hasCrossedStartLine = false;
+    this.isCheckeredSaved = false;
+
+    // Load saved session results history from localStorage
+    const savedHistory = localStorage.getItem('kart_session_history');
+    this.sessionHistory = savedHistory ? JSON.parse(savedHistory) : [];
+
     // Real Telemetry State
     this.state = {
       trackId: "kartodromo-lucas-guerrero",
       trackName: "Kartódromo Lucas Guerrero",
       sessionName: "Conectando a Apex Timing...",
       flagStatus: "GREEN",
+      raceStatus: "WAITING_START", // WAITING_START, RACING, CHECKERED_FINISHED
       totalLaps: 0,
       currentLapMax: 0,
       elapsedTimeSec: 0,
       isLiveConnected: false,
-      statusMessage: "Buscando piloto en pista...",
+      statusMessage: "Esperando primer paso por meta...",
       targetDriverName: "Alex R.",
       matchedKartNumber: 14,
+      sessionHistory: this.sessionHistory,
       drivers: []
     };
   }
@@ -49,15 +58,10 @@ export class ApexTimingService {
     this.notify();
   }
 
-  /**
-   * Search live grid drivers to find matching kart for target driver name
-   */
   resolveTargetKart() {
     if (!Array.isArray(this.state.drivers) || this.state.drivers.length === 0) return;
     
     const query = this.targetDriverName.toLowerCase();
-    
-    // Try exact or partial name match
     const matched = this.state.drivers.find(d => 
       d.name && d.name.toLowerCase().includes(query)
     );
@@ -114,7 +118,7 @@ export class ApexTimingService {
       this.isLiveConnected = false;
       this.state.isLiveConnected = false;
       this.state.sessionName = "Pista sin tanda activa en este momento";
-      this.state.statusMessage = "Apex Timing: Esperando salida a pista";
+      this.state.statusMessage = "Apex Timing: En espera de actividad en Lucas Guerrero";
       this.notify();
     }
   }
@@ -122,7 +126,6 @@ export class ApexTimingService {
   processRealApexJson(data) {
     this.isLiveConnected = true;
     this.state.isLiveConnected = true;
-    this.state.statusMessage = "🟢 EN VIVO: Leyendo sensores Apex Timing";
 
     if (data.session_name) this.state.sessionName = data.session_name;
     if (data.track_name) this.state.trackName = data.track_name;
@@ -143,7 +146,7 @@ export class ApexTimingService {
         const gapLeaderMs = Number(d.gap_ms || d.gap || 0);
         const intervalAheadMs = Number(d.interval_ms || d.interval || 0);
 
-        const lapRecord = {
+        return {
           position,
           kartNumber,
           name,
@@ -159,42 +162,78 @@ export class ApexTimingService {
           isPersonalBest: Boolean(d.is_personal_best || d.pb),
           isSessionBest: Boolean(d.is_session_best || d.sb)
         };
-
-        if (lastLapMs > 0 && kartNumber > 0) {
-          supabaseExporter.recordLap({
-            id: crypto.randomUUID(),
-            session_id: data.session_id || 'live-lucas-guerrero',
-            track_id: 'kartodromo-lucas-guerrero',
-            kart_number: kartNumber,
-            driver_name: name,
-            lap_number: currentLap,
-            lap_time_ms: lastLapMs,
-            sector1_ms: d.s1_ms || null,
-            sector2_ms: d.s2_ms || null,
-            sector3_ms: d.s3_ms || null,
-            gap_to_leader_ms: gapLeaderMs,
-            interval_ahead_ms: intervalAheadMs,
-            interval_behind_ms: 0,
-            is_personal_best: lapRecord.isPersonalBest,
-            is_session_best: lapRecord.isSessionBest,
-            created_at: new Date().toISOString()
-          });
-        }
-
-        return lapRecord;
       }).sort((a, b) => a.position - b.position);
 
-      // Auto-resolve kart number matching driver name
       this.resolveTargetKart();
+
+      // Find target driver
+      const targetDriver = this.state.drivers.find(d => Number(d.kartNumber) === Number(this.targetKart));
+
+      // 1. START TRIGGER: Check if driver has crossed finish line (Meta) for first time
+      if (targetDriver && (targetDriver.currentLap >= 1 || targetDriver.lastLapMs > 0)) {
+        this.hasCrossedStartLine = true;
+      }
+
+      if (!this.hasCrossedStartLine) {
+        this.state.raceStatus = "WAITING_START";
+        this.state.statusMessage = "🏁 ESPERANDO PASO POR META PARA INICIAR...";
+      } else {
+        // 2. CHECKERED FLAG FINISH TRIGGER
+        if (this.state.flagStatus === 'CHECKERED' || data.is_finished) {
+          this.state.raceStatus = "CHECKERED_FINISHED";
+          this.state.statusMessage = "🏁 CARRERA FINALIZADA (BANDERA A CUADROS)";
+
+          // 3. SAVE RESULTS TO HISTORY DROPDOWN ONCE
+          if (!this.isCheckeredSaved && targetDriver) {
+            this.saveSessionResult(targetDriver);
+            this.isCheckeredSaved = true;
+          }
+        } else {
+          this.state.raceStatus = "RACING";
+          this.state.statusMessage = "🟢 EN CARRERA: Telemetría activa";
+          this.isCheckeredSaved = false;
+        }
+      }
 
       for (let i = 0; i < this.state.drivers.length - 1; i++) {
         this.state.drivers[i].intervalBehindMs = this.state.drivers[i + 1].intervalAheadMs;
       }
     } else {
       this.state.drivers = [];
+      this.hasCrossedStartLine = false;
+      this.state.raceStatus = "WAITING_START";
+      this.state.statusMessage = "Esperando tanda activa en pista...";
     }
 
     this.notify();
+  }
+
+  /**
+   * Save finished session results to dropdown history & localStorage
+   */
+  saveSessionResult(targetDriver) {
+    const newResult = {
+      id: `session-${Date.now()}`,
+      sessionName: this.state.sessionName || 'Tanda Lucas Guerrero',
+      date: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }),
+      driverName: targetDriver.name,
+      kartNumber: targetDriver.kartNumber,
+      finalPosition: targetDriver.position,
+      bestLapTime: this.formatTime(targetDriver.bestLapMs),
+      lastLapTime: this.formatTime(targetDriver.lastLapMs),
+      totalLaps: targetDriver.currentLap
+    };
+
+    // Prepend to history dropdown list
+    this.sessionHistory.unshift(newResult);
+    
+    // Save up to 20 past sessions in localStorage
+    if (this.sessionHistory.length > 20) {
+      this.sessionHistory = this.sessionHistory.slice(0, 20);
+    }
+    
+    localStorage.setItem('kart_session_history', JSON.stringify(this.sessionHistory));
+    this.state.sessionHistory = [...this.sessionHistory];
   }
 
   formatTime(ms) {
