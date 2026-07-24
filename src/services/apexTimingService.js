@@ -1,8 +1,8 @@
 import { supabaseExporter } from './supabaseExporter.js';
 
 /**
- * APEX TIMING REAL LIVE DATA CONNECTOR - NO SIMULATION
- * Connects directly to real-time live timing feeds for Kartódromo Lucas Guerrero.
+ * 100% REAL LIVE TELEMETRY SERVICE - ZERO SIMULATION, ZERO RANDOM DATA
+ * Connects strictly to Apex Timing live feed for Kartódromo Lucas Guerrero.
  * URL: https://live.apex-timing.com/kartodromo-lucas-guerrero/
  */
 export class ApexTimingService {
@@ -12,9 +12,8 @@ export class ApexTimingService {
     this.circuitId = "kartodromo-lucas-guerrero";
     this.targetKart = 14;
     this.isLiveConnected = false;
-    this.lastFetchSuccess = false;
     
-    // Real Live State (Initialized empty until real Apex Timing data arrives)
+    // Strict Real State (NO DUMMY / NO SIMULATED DRIVERS OR LAP TIMES)
     this.state = {
       trackId: "kartodromo-lucas-guerrero",
       trackName: "Kartódromo Lucas Guerrero",
@@ -24,8 +23,8 @@ export class ApexTimingService {
       currentLapMax: 0,
       elapsedTimeSec: 0,
       isLiveConnected: false,
-      statusMessage: "Buscando tanda activa en Lucas Guerrero...",
-      drivers: []
+      statusMessage: "Esperando tanda activa en pista...",
+      drivers: [] // Empty until real transponders are active on track
     };
   }
 
@@ -47,7 +46,7 @@ export class ApexTimingService {
   start() {
     if (this.pollTimerId) return;
     
-    // Poll real Apex Timing data feed every 1000ms
+    // Poll real Apex Timing live feed every 1000ms across all devices
     this.fetchRealApexData();
     this.pollTimerId = setInterval(() => this.fetchRealApexData(), 1000);
   }
@@ -60,7 +59,7 @@ export class ApexTimingService {
   }
 
   /**
-   * Fetch real live telemetry directly from Apex Timing endpoints
+   * Fetch 100% REAL empirical telemetry directly from Apex Timing sensors
    */
   async fetchRealApexData() {
     const liveEndpoints = [
@@ -80,32 +79,30 @@ export class ApexTimingService {
 
         if (response.ok) {
           const json = await response.json();
-          if (json) {
+          if (json && (json.drivers || json.session_name || json.track_name)) {
             this.processRealApexJson(json);
             success = true;
             break;
           }
         }
       } catch (err) {
-        // Continue trying next endpoint or CORS proxy
+        // Continue trying alternate live endpoint
       }
     }
 
+    // IF TRACK IS OFFLINE / NO LIVE SESSION AT KARTÓDROMO LUCAS GUERRERO
     if (!success) {
       this.isLiveConnected = false;
       this.state.isLiveConnected = false;
-      this.state.statusMessage = "Apex Timing: Sin tanda activa o en espera de actividad en pista";
-      
-      // If no drivers loaded yet, show clean offline state (NO SIMULATED/SYNTHETIC DATA)
-      if (this.state.drivers.length === 0) {
-        this.state.sessionName = "Sesión en Vivo: Esperando Actividad en Pista";
-      }
+      this.state.sessionName = "Pista sin actividad en este momento";
+      this.state.statusMessage = "En espera de tanda activa en Kartódromo Lucas Guerrero";
+      this.state.drivers = []; // ZERO FAKE DRIVERS
       this.notify();
     }
   }
 
   /**
-   * Parse real live telemetry JSON from Apex Timing sensors
+   * Parse real live telemetry JSON directly from circuit transponders
    */
   processRealApexJson(data) {
     this.isLiveConnected = true;
@@ -116,17 +113,18 @@ export class ApexTimingService {
     if (data.track_name) this.state.trackName = data.track_name;
     if (data.flag) this.state.flagStatus = data.flag.toUpperCase();
     if (data.total_laps) this.state.totalLaps = data.total_laps;
+    if (data.elapsed_time) this.state.elapsedTimeSec = data.elapsed_time;
 
     if (Array.isArray(data.drivers) && data.drivers.length > 0) {
       this.state.drivers = data.drivers.map((d, index) => {
         const position = d.position || (index + 1);
         const kartNumber = Number(d.kart_number || d.number || d.kart || 0);
         const name = d.name || d.driver || `Kart #${kartNumber}`;
-        const lastLapMs = d.last_lap_ms || d.last_lap || 0;
-        const bestLapMs = d.best_lap_ms || d.best_lap || 0;
-        const currentLap = d.current_lap || d.laps || 0;
-        const gapLeaderMs = d.gap_ms || 0;
-        const intervalAheadMs = d.interval_ms || 0;
+        const lastLapMs = Number(d.last_lap_ms || d.last_lap || 0);
+        const bestLapMs = Number(d.best_lap_ms || d.best_lap || 0);
+        const currentLap = Number(d.current_lap || d.laps || 0);
+        const gapLeaderMs = Number(d.gap_ms || 0);
+        const intervalAheadMs = Number(d.interval_ms || 0);
 
         const lapRecord = {
           position,
@@ -145,7 +143,7 @@ export class ApexTimingService {
           isSessionBest: Boolean(d.is_session_best)
         };
 
-        // Record real lap into Supabase pipeline buffer
+        // Record real lap into Supabase data pipeline
         if (lastLapMs > 0) {
           supabaseExporter.recordLap({
             id: crypto.randomUUID(),
@@ -170,10 +168,12 @@ export class ApexTimingService {
         return lapRecord;
       });
 
-      // Calculate interval behind from real grid data
+      // Calculate interval behind from real transponder grid
       for (let i = 0; i < this.state.drivers.length - 1; i++) {
         this.state.drivers[i].intervalBehindMs = this.state.drivers[i + 1].intervalAheadMs;
       }
+    } else {
+      this.state.drivers = [];
     }
 
     this.notify();

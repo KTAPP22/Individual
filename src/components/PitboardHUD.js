@@ -37,33 +37,46 @@ export function PitboardHUD({ state, targetKart, apexService }) {
     'div',
     { 
       onClick: handleToggleFullscreen,
-      className: 'w-screen h-screen bg-black text-white p-1 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer' 
+      className: 'w-screen h-screen bg-black text-white p-1.5 sm:p-2 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer' 
     },
-    
-    // REAL TELEMETRY CANVAS
+
+    // Status Notification Banner when track has no active live session
+    !hasDrivers && e(
+      'div',
+      { className: 'w-full py-1 px-3 bg-gray-900/90 border border-gray-800 rounded-lg mb-1 flex items-center justify-between text-xs font-mono text-gray-300' },
+      e('div', { className: 'flex items-center gap-2' },
+        e('span', { className: 'w-2 h-2 rounded-full bg-yellow-400' }),
+        e('span', { className: 'font-bold' }, state.trackName || 'Kartódromo Lucas Guerrero'),
+        e('span', { className: 'text-gray-500 hidden sm:inline' }, '|'),
+        e('span', { className: 'text-gray-400' }, state.sessionName || 'Esperando tanda en vivo...')
+      ),
+      e('span', { className: 'text-[10px] text-emerald-400 font-bold bg-emerald-500/10 px-1.5 py-0.5 rounded' }, 'DATOS REALES EN VIVO')
+    ),
+
+    // UNIVERSAL FULLY RESPONSIVE GRID (PC / TABLET / MOBILE PORTRAIT / MOBILE LANDSCAPE)
     e(
       'div',
-      { className: 'w-full h-full grid grid-cols-1 landscape:grid-cols-12 md:grid-cols-12 gap-1.5' },
+      { className: 'w-full flex-1 grid grid-cols-1 landscape:grid-cols-12 md:grid-cols-12 gap-1.5 sm:gap-2' },
 
       // ==========================================
-      // BLOQUE 1: POSICIÓN Y VUELTAS (3/12)
+      // BLOQUE 1: POSICIÓN Y VUELTAS (PC: 3 cols / Land: 3 cols / Port: Full width)
       // ==========================================
       e(
         'div',
-        { className: 'landscape:col-span-3 md:col-span-3 flex flex-row landscape:flex-col md:flex-col gap-1.5 h-full' },
+        { className: 'landscape:col-span-3 md:col-span-3 flex flex-row landscape:flex-col md:flex-col gap-1.5 sm:gap-2 h-full' },
         
         // POSICIÓN
         e(
           'div',
           { className: 'flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl p-2 flex flex-col justify-between items-center text-center shadow-2xl' },
-          e('span', { className: 'text-gray-400 font-extrabold text-[11px] uppercase tracking-widest' }, 'POSICIÓN'),
+          e('span', { className: 'text-gray-400 font-extrabold text-[11px] sm:text-xs uppercase tracking-widest' }, 'POSICIÓN'),
           e(
             'div',
             { className: 'my-auto flex items-baseline justify-center' },
             e('span', { className: 'text-2xl md:text-3xl font-black font-mono text-gray-500 mr-1' }, 'P'),
             e(
               'span',
-              { className: `text-6xl landscape:text-7xl md:text-8xl font-black font-mono leading-none ${isLeader ? 'text-yellow-400' : 'text-[#00FF66]'}` },
+              { className: `text-5xl landscape:text-6xl md:text-7xl lg:text-8xl font-black font-mono leading-none ${isLeader ? 'text-yellow-400' : 'text-[#00FF66]'}` },
               driver ? driver.position : '--'
             )
           ),
@@ -73,8 +86,8 @@ export function PitboardHUD({ state, targetKart, apexService }) {
         // VUELTAS
         e(
           'div',
-          { className: 'flex-1 landscape:h-[35%] md:h-[35%] bg-[#0A0A0E] border-2 border-gray-800 rounded-xl p-1.5 flex flex-col justify-between items-center text-center shadow-lg' },
-          e('span', { className: 'text-gray-400 font-extrabold text-[11px] uppercase tracking-widest' }, 'VUELTAS'),
+          { className: 'flex-1 landscape:h-[35%] md:h-[35%] bg-[#0A0A0E] border-2 border-gray-800 rounded-xl p-2 flex flex-col justify-between items-center text-center shadow-lg' },
+          e('span', { className: 'text-gray-400 font-extrabold text-[11px] sm:text-xs uppercase tracking-widest' }, 'VUELTAS'),
           e(
             'div',
             { className: 'my-auto flex items-baseline gap-1 font-mono font-black' },
@@ -85,21 +98,21 @@ export function PitboardHUD({ state, targetKart, apexService }) {
       ),
 
       // ==========================================
-      // BLOQUE 2: DIFERENCIAS / GAPS REALES (5/12)
+      // BLOQUE 2: DIFERENCIAS / GAPS REALES (PC: 5 cols / Land: 5 cols / Port: Full width)
       // ==========================================
       e(
         'div',
-        { className: 'landscape:col-span-5 md:col-span-5 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl p-2 flex flex-col justify-between shadow-lg h-full' },
-        e('span', { className: 'text-gray-400 font-extrabold text-[11px] uppercase tracking-widest text-center border-b border-gray-800 pb-1' }, 'DIFERENCIAS EN VIVO (SEG)'),
+        { className: 'landscape:col-span-5 md:col-span-5 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl p-2.5 flex flex-col justify-between shadow-lg h-full' },
+        e('span', { className: 'text-gray-400 font-extrabold text-[11px] sm:text-xs uppercase tracking-widest text-center border-b border-gray-800 pb-1' }, 'DIFERENCIAS EN VIVO (SEG)'),
         
         e(
           'div',
-          { className: 'flex-1 flex flex-col justify-around py-1 font-mono gap-1' },
+          { className: 'flex-1 flex flex-col justify-around py-1 font-mono gap-1 sm:gap-1.5' },
 
           // LÍDER
           e(
             'div',
-            { className: 'flex justify-between items-center bg-black/80 px-3 py-1.5 rounded-lg border border-gray-800' },
+            { className: 'flex justify-between items-center bg-black/80 px-3 py-1.5 sm:py-2 rounded-lg border border-gray-800' },
             e('span', { className: 'text-xs md:text-sm font-bold text-gray-400' }, 'LÍDER CARRERA'),
             e(
               'span',
@@ -111,7 +124,7 @@ export function PitboardHUD({ state, targetKart, apexService }) {
           // DELANTE
           e(
             'div',
-            { className: 'flex justify-between items-center bg-black/80 px-3 py-1.5 rounded-lg border border-gray-800' },
+            { className: 'flex justify-between items-center bg-black/80 px-3 py-1.5 sm:py-2 rounded-lg border border-gray-800' },
             e('span', { className: 'text-xs md:text-sm font-bold text-[#00FF66]' }, driverAhead ? `▲ KART #${driverAhead.kartNumber}` : 'DELANTE'),
             e(
               'span',
@@ -123,7 +136,7 @@ export function PitboardHUD({ state, targetKart, apexService }) {
           // DETRÁS
           e(
             'div',
-            { className: 'flex justify-between items-center bg-black/80 px-3 py-1.5 rounded-lg border border-gray-800' },
+            { className: 'flex justify-between items-center bg-black/80 px-3 py-1.5 sm:py-2 rounded-lg border border-gray-800' },
             e('span', { className: 'text-xs md:text-sm font-bold text-red-400' }, driverBehind ? `▼ KART #${driverBehind.kartNumber}` : 'DETRÁS'),
             e(
               'span',
@@ -135,18 +148,18 @@ export function PitboardHUD({ state, targetKart, apexService }) {
       ),
 
       // ==========================================
-      // BLOQUE 3: TIEMPOS DE VUELTA REALES (4/12)
+      // BLOQUE 3: TIEMPOS DE VUELTA REALES (PC: 4 cols / Land: 4 cols / Port: Full width)
       // ==========================================
       e(
         'div',
-        { className: 'landscape:col-span-4 md:col-span-4 flex flex-col gap-1.5 h-full' },
+        { className: 'landscape:col-span-4 md:col-span-4 flex flex-col gap-1.5 sm:gap-2 h-full' },
         
         // ÚLTIMA VUELTA
         e(
           'div',
-          { className: 'flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl p-2 flex flex-col justify-between shadow-lg text-center' },
+          { className: 'flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl p-2.5 flex flex-col justify-between shadow-lg text-center' },
           e('div', { className: 'flex justify-between items-center' },
-            e('span', { className: 'text-gray-400 font-extrabold text-[11px] uppercase tracking-widest' }, 'ÚLTIMA VUELTA'),
+            e('span', { className: 'text-gray-400 font-extrabold text-[11px] sm:text-xs uppercase tracking-widest' }, 'ÚLTIMA VUELTA'),
             e('span', { className: `text-xs font-mono font-bold ${deltaLastVsBest <= 0 ? 'text-[#00FF66]' : 'text-yellow-400'}` }, deltaFormatted)
           ),
           e(
@@ -154,7 +167,7 @@ export function PitboardHUD({ state, targetKart, apexService }) {
             { className: 'my-auto' },
             e(
               'span',
-              { className: 'text-3xl landscape:text-5xl md:text-6xl font-black font-mono text-white tracking-tighter' },
+              { className: 'text-3xl landscape:text-4xl md:text-5xl lg:text-6xl font-black font-mono text-white tracking-tighter' },
               driver ? apexService.formatTime(driver.lastLapMs) : '--:--.---'
             )
           )
@@ -163,9 +176,9 @@ export function PitboardHUD({ state, targetKart, apexService }) {
         // MEJOR VUELTA
         e(
           'div',
-          { className: `h-[40%] bg-[#0A0A0E] border-2 rounded-xl p-2 flex flex-col justify-between shadow-lg text-center ${driver && driver.isSessionBest ? 'border-purple-500' : 'border-gray-800'}` },
+          { className: `h-[40%] bg-[#0A0A0E] border-2 rounded-xl p-2.5 flex flex-col justify-between shadow-lg text-center ${driver && driver.isSessionBest ? 'border-purple-500' : 'border-gray-800'}` },
           e('div', { className: 'flex justify-between items-center' },
-            e('span', { className: 'text-gray-400 font-extrabold text-[11px] uppercase tracking-widest' }, 'MEJOR VUELTA'),
+            e('span', { className: 'text-gray-400 font-extrabold text-[11px] sm:text-xs uppercase tracking-widest' }, 'MEJOR VUELTA'),
             e('span', { className: `text-[10px] px-1.5 py-0.5 rounded font-mono font-bold ${driver && driver.isSessionBest ? 'bg-purple-600 text-white' : 'bg-emerald-500/20 text-[#00FF66]'}` },
               driver && driver.isSessionBest ? 'SB' : 'PB'
             )
