@@ -15,8 +15,6 @@ export function PitboardHUD({ state, targetDriverName, apexService, onOpenTiming
   const driverBehind = (matchedIndex >= 0 && matchedIndex < state.drivers.length - 1 && hasDrivers) ? state.drivers[matchedIndex + 1] : null;
 
   const isLeader = driver ? driver.position === 1 : false;
-  const isWaitingStart = state.raceStatus === 'WAITING_START';
-  const isCheckeredFinished = state.raceStatus === 'CHECKERED_FINISHED';
 
   // Delta calculation
   const deltaLastVsBest = driver ? (driver.lastLapMs - driver.bestLapMs) : 0;
@@ -51,11 +49,11 @@ export function PitboardHUD({ state, targetDriverName, apexService, onOpenTiming
     // PROMINENT UNIFIED HEADER BAR (CIRCUIT & DRIVER STATUS)
     e(
       'div',
-      { className: 'w-full py-1.5 px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-1.5 flex items-center justify-between font-mono shadow-xl shrink-0 h-12 z-20' },
+      { className: 'w-full py-1.5 px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-12 z-20' },
       
       // LEFT SIDE: CIRCUIT NAME & TARGET DRIVER BADGE
       e('div', { className: 'flex items-center gap-2 overflow-hidden' },
-        e('span', { className: `w-3 h-3 rounded-full shrink-0 ${isCheckeredFinished ? 'bg-white' : isWaitingStart ? 'bg-yellow-400' : 'bg-[#00FF66] animate-pulse'}` }),
+        e('span', { className: 'w-3 h-3 rounded-full bg-[#00FF66] animate-pulse shrink-0' }),
         e('span', { className: 'font-black tracking-wider text-white uppercase text-xs md:text-sm truncate' }, state.trackName || 'Kartódromo Lucas Guerrero'),
         e('span', { className: 'text-gray-600 hidden sm:inline' }, '|'),
         e('span', { className: 'text-emerald-400 font-bold text-xs truncate' }, `PILOTO: ${currentTargetName}`)
@@ -94,21 +92,6 @@ export function PitboardHUD({ state, targetDriverName, apexService, onOpenTiming
           '⚙️'
         )
       )
-    ),
-
-    // START / FINISH RACE STATUS NOTIFICATION BANNER
-    isWaitingStart && e(
-      'div',
-      { className: 'w-full py-1 px-3 bg-yellow-950/80 border border-yellow-500/60 rounded-lg mb-1.5 flex items-center justify-between text-xs font-mono text-yellow-300' },
-      e('span', { className: 'font-bold' }, '🏁 ESPERANDO PRIMER PASO POR META PARA INICIAR...'),
-      e('span', { className: 'text-[10px] text-gray-400 font-mono hidden sm:inline' }, 'El cronómetro se activará al cruzar la línea')
-    ),
-
-    isCheckeredFinished && e(
-      'div',
-      { className: 'w-full py-1 px-3 bg-neutral-900 border-2 border-white rounded-lg mb-1.5 flex items-center justify-between text-xs font-mono text-white' },
-      e('span', { className: 'font-black text-[#00FF66]' }, '🏁 CARRERA FINALIZADA (BANDERA A CUADROS)'),
-      e('span', { className: 'text-[10px] bg-emerald-500/20 text-emerald-400 px-2 py-0.5 rounded font-bold' }, 'RESULTADOS GUARDADOS EN HISTORIAL 📂')
     ),
 
     // 100% UNIFIED TELEMETRY GRID DISPLAYING ALL 6 TIMING FIELDS
