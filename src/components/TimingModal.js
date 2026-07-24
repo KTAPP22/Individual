@@ -1,3 +1,5 @@
+import React from 'https://esm.sh/react@18.2.0';
+
 const e = React.createElement;
 
 export function TimingModal({ isOpen, onClose }) {
@@ -42,7 +44,7 @@ export function TimingModal({ isOpen, onClose }) {
       )
     ),
 
-    // Embedded Official Apex Timing Live Page (Exact URL)
+    // Embedded Official Apex Timing Live Page
     e(
       'div',
       { className: 'flex-1 w-full h-full bg-black relative overflow-hidden' },

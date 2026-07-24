@@ -17,41 +17,34 @@
   
   <!-- Custom Styles with Hard Cache Busting -->
   <link rel="stylesheet" href="./src/styles.css?v=9.9.9">
-
-  <!-- React 18 & ReactDOM CDN -->
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
 </head>
 <body class="bg-black text-white antialiased overflow-hidden select-none">
   <div id="root"></div>
 
   <!-- Aggressively WIPE OUT any Service Worker and Cache to force loading fresh code on PC & Mobile -->
   <script>
-    // Unregister all service workers
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
         for (let registration of registrations) {
-          registration.unregister().then(() => {
-            console.log('[PWA] ServiceWorker unregistered successfully');
-          });
+          registration.unregister();
         }
       });
     }
-    // Delete all browser caches
     if ('caches' in window) {
       caches.keys().then(names => {
         for (let name of names) {
-          caches.delete(name).then(() => {
-            console.log('[PWA] Cache storage cleared:', name);
-          });
+          caches.delete(name);
         }
       });
     }
   </script>
 
-  <!-- Main Application Entry Script with Hard Cache Busting -->
+  <!-- Main Application Entry Script with Hard Cache Busting and ESM Imports -->
   <script type="module">
+    import React from 'https://esm.sh/react@18.2.0';
+    import ReactDOM from 'https://esm.sh/react-dom@18.2.0';
     import { App } from './src/app.js?v=9.9.9';
+
     const rootElement = document.getElementById('root');
     const root = ReactDOM.createRoot(rootElement);
     root.render(React.createElement(App));

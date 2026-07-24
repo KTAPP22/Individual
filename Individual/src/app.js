@@ -1,3 +1,4 @@
+import React from 'https://esm.sh/react@18.2.0';
 import { apexTimingService } from './services/apexTimingService.js';
 import { PitboardHUD } from './components/PitboardHUD.js';
 import { SettingsModal } from './components/SettingsModal.js';
