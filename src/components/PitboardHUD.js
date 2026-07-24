@@ -40,7 +40,7 @@ export function PitboardHUD({ state, targetKart, apexService }) {
       className: 'w-screen h-screen bg-black text-white p-2 md:p-4 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer' 
     },
 
-    // TOP CIRCUIT BRANDING & REAL-TIME CONNECTION BAR (PC & MOBILE)
+    // TOP CIRCUIT BRANDING & REAL-TIME CONNECTION BAR (CLEAN, NO REAL APEX TIMING BADGE)
     e(
       'div',
       { className: 'w-full py-1.5 px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-2 flex items-center justify-between text-xs md:text-sm font-mono shadow-xl shrink-0' },
@@ -49,9 +49,6 @@ export function PitboardHUD({ state, targetKart, apexService }) {
         e('span', { className: 'font-black tracking-wider text-white uppercase text-xs md:text-sm' }, state.trackName || 'Kartódromo Lucas Guerrero'),
         e('span', { className: 'text-gray-600 hidden sm:inline' }, '|'),
         e('span', { className: 'text-emerald-400 font-bold text-xs hidden sm:inline' }, state.sessionName || 'Esperando tanda en vivo...')
-      ),
-      e('div', { className: 'flex items-center gap-2' },
-        e('span', { className: 'text-[10px] md:text-xs text-black font-extrabold bg-[#00FF66] px-2 py-0.5 rounded uppercase tracking-wider' }, 'REAL APEX TIMING')
       )
     ),
 
