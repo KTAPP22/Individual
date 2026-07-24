@@ -1,17 +1,22 @@
 const e = React.createElement;
 
-export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOpenSettings }) {
+export function PitboardHUD({ state, targetDriverName, apexService, onOpenTiming, onOpenSettings }) {
   const hasDrivers = Array.isArray(state.drivers) && state.drivers.length > 0;
+  const currentTargetName = targetDriverName || state.targetDriverName || 'Alex R.';
+
+  // Automatically find driver by driver name in live Apex grid
+  const matchedIndex = hasDrivers 
+    ? state.drivers.findIndex(d => d.name && d.name.toLowerCase().includes(currentTargetName.toLowerCase()))
+    : -1;
+
+  const driver = matchedIndex !== -1 ? state.drivers[matchedIndex] : (hasDrivers ? state.drivers[0] : null);
   
-  const driverIndex = hasDrivers ? state.drivers.findIndex(d => Number(d.kartNumber) === Number(targetKart)) : -1;
-  const driver = driverIndex !== -1 ? state.drivers[driverIndex] : (hasDrivers ? state.drivers[0] : null);
-  
-  const driverAhead = (driverIndex > 0 && hasDrivers) ? state.drivers[driverIndex - 1] : null;
-  const driverBehind = (driverIndex < state.drivers.length - 1 && hasDrivers) ? state.drivers[driverIndex + 1] : null;
+  const driverAhead = (matchedIndex > 0 && hasDrivers) ? state.drivers[matchedIndex - 1] : null;
+  const driverBehind = (matchedIndex >= 0 && matchedIndex < state.drivers.length - 1 && hasDrivers) ? state.drivers[matchedIndex + 1] : null;
 
   const isLeader = driver ? driver.position === 1 : false;
 
-  // Delta calculation between last lap and best lap
+  // Delta calculation
   const deltaLastVsBest = driver ? (driver.lastLapMs - driver.bestLapMs) : 0;
   const deltaFormatted = !driver || driver.lastLapMs === 0
     ? "--:--" 
@@ -41,20 +46,20 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
       className: 'w-screen h-screen bg-black text-white p-2 md:p-3 flex flex-col justify-between overflow-hidden select-none safe-area-inset cursor-pointer' 
     },
 
-    // UNIFIED PROMINENT HEADER BAR (PC & MOBILE)
+    // PROMINENT UNIFIED HEADER BAR (CIRCUIT & DRIVER STATUS)
     e(
       'div',
       { className: 'w-full py-1.5 px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-12 z-20' },
       
-      // LEFT SIDE: CIRCUIT STATUS & NAME
+      // LEFT SIDE: CIRCUIT NAME & TARGET DRIVER BADGE
       e('div', { className: 'flex items-center gap-2 overflow-hidden' },
         e('span', { className: 'w-3 h-3 rounded-full bg-[#00FF66] animate-pulse shrink-0' }),
         e('span', { className: 'font-black tracking-wider text-white uppercase text-xs md:text-sm truncate' }, state.trackName || 'Kartódromo Lucas Guerrero'),
         e('span', { className: 'text-gray-600 hidden sm:inline' }, '|'),
-        e('span', { className: 'text-emerald-400 font-bold text-xs hidden sm:inline truncate' }, state.sessionName || 'Esperando tanda en vivo...')
+        e('span', { className: 'text-emerald-400 font-bold text-xs truncate' }, `PILOTO: ${currentTargetName}`)
       ),
 
-      // RIGHT SIDE: PROMINENT TIMING BUTTON & SETTINGS ICON
+      // RIGHT SIDE: TIMING BUTTON & SETTINGS ICON
       e('div', { className: 'flex items-center gap-2 shrink-0 z-30' },
         e(
           'button',
@@ -95,13 +100,13 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
       { className: 'w-full flex-1 grid grid-cols-12 gap-2 md:gap-3' },
 
       // ==========================================
-      // BLOQUE 1 (3/12): POSICIÓN, KART, PILOTO Y TOTAL DE VUELTAS
+      // BLOQUE 1 (3/12): POSICIÓN, PILOTO Y KART AUTO-DETECTADO
       // ==========================================
       e(
         'div',
         { className: 'col-span-3 flex flex-col justify-between gap-2 h-full' },
         
-        // POSICIÓN, NÚMERO DE KART Y NOMBRE DEL PILOTO
+        // POSICIÓN & PILOTO DETECTADO
         e(
           'div',
           { className: 'flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between items-center text-center shadow-2xl relative' },
@@ -117,10 +122,10 @@ export function PitboardHUD({ state, targetKart, apexService, onOpenTiming, onOp
             )
           ),
           
-          // NOMBRE DEL PILOTO Y NÚMERO DE KART
+          // NOMBRE DE PILOTO Y KART AUTO-DETECTADO EN VIVO
           e('div', { className: 'flex flex-col items-center gap-0.5 w-full' },
-            e('span', { className: 'text-xs sm:text-sm font-mono text-white font-extrabold truncate max-w-full px-1' }, driver ? driver.name : 'Piloto'),
-            e('span', { className: 'text-[11px] sm:text-xs font-mono text-gray-300 font-bold bg-white/10 px-2 py-0.5 rounded-md' }, driver ? `KART #${driver.kartNumber}` : `KART #${targetKart}`)
+            e('span', { className: 'text-xs sm:text-sm font-mono text-white font-extrabold truncate max-w-full px-1' }, driver ? driver.name : currentTargetName),
+            e('span', { className: 'text-[11px] sm:text-xs font-mono text-gray-300 font-bold bg-white/10 px-2 py-0.5 rounded-md' }, driver ? `KART #${driver.kartNumber}` : 'BUSCANDO KART...')
           )
         ),
 

@@ -7,7 +7,7 @@ const e = React.createElement;
 
 export function App() {
   const [timingState, setTimingState] = React.useState(apexTimingService.state);
-  const [targetKart, setTargetKart] = React.useState(14);
+  const [targetDriverName, setTargetDriverName] = React.useState('Alex R.');
   const [isSettingsOpen, setIsSettingsOpen] = React.useState(false);
   const [isTimingModalOpen, setIsTimingModalOpen] = React.useState(false);
 
@@ -26,9 +26,9 @@ export function App() {
     };
   }, []);
 
-  const handleSelectKart = (kartNum) => {
-    setTargetKart(kartNum);
-    apexTimingService.setTargetKart(kartNum);
+  const handleSaveDriverName = (name) => {
+    setTargetDriverName(name);
+    apexTimingService.setTargetDriverName(name);
   };
 
   return e(
@@ -41,7 +41,7 @@ export function App() {
       { className: 'w-full h-full overflow-hidden' },
       e(PitboardHUD, {
         state: timingState,
-        targetKart,
+        targetDriverName,
         apexService: apexTimingService,
         onOpenTiming: () => setIsTimingModalOpen(true),
         onOpenSettings: () => setIsSettingsOpen(true)
@@ -52,8 +52,8 @@ export function App() {
     e(SettingsModal, {
       isOpen: isSettingsOpen,
       onClose: () => setIsSettingsOpen(false),
-      targetKart,
-      onSelectKart: handleSelectKart,
+      targetDriverName,
+      onSaveDriverName: handleSaveDriverName,
       apexService: apexTimingService
     }),
 

@@ -2,18 +2,19 @@ import { supabaseExporter } from './supabaseExporter.js';
 
 /**
  * 100% REAL APEX TIMING PARSER FOR KARTÓDROMO LUCAS GUERRERO
- * Exact extraction of live Position, Kart Number, Lap Times & Gaps from:
- * https://live.apex-timing.com/kartodromo-lucas-guerrero/
+ * Driver Name Matching & Live Position/Kart Tracking Engine
+ * URL: https://live.apex-timing.com/kartodromo-lucas-guerrero/
  */
 export class ApexTimingService {
   constructor() {
     this.listeners = new Set();
     this.pollTimerId = null;
     this.circuitId = "kartodromo-lucas-guerrero";
+    this.targetDriverName = "Alex R.";
     this.targetKart = 14;
     this.isLiveConnected = false;
     
-    // Exact Apex Timing Telemetry State
+    // Real Telemetry State
     this.state = {
       trackId: "kartodromo-lucas-guerrero",
       trackName: "Kartódromo Lucas Guerrero",
@@ -23,7 +24,9 @@ export class ApexTimingService {
       currentLapMax: 0,
       elapsedTimeSec: 0,
       isLiveConnected: false,
-      statusMessage: "Esperando transpondedores en pista...",
+      statusMessage: "Buscando piloto en pista...",
+      targetDriverName: "Alex R.",
+      matchedKartNumber: 14,
       drivers: []
     };
   }
@@ -38,9 +41,31 @@ export class ApexTimingService {
     this.listeners.forEach(cb => cb({ ...this.state }));
   }
 
-  setTargetKart(kartNumber) {
-    this.targetKart = Number(kartNumber);
+  setTargetDriverName(name) {
+    if (!name) return;
+    this.targetDriverName = String(name).trim();
+    this.state.targetDriverName = this.targetDriverName;
+    this.resolveTargetKart();
     this.notify();
+  }
+
+  /**
+   * Search live grid drivers to find matching kart for target driver name
+   */
+  resolveTargetKart() {
+    if (!Array.isArray(this.state.drivers) || this.state.drivers.length === 0) return;
+    
+    const query = this.targetDriverName.toLowerCase();
+    
+    // Try exact or partial name match
+    const matched = this.state.drivers.find(d => 
+      d.name && d.name.toLowerCase().includes(query)
+    );
+
+    if (matched) {
+      this.targetKart = matched.kartNumber;
+      this.state.matchedKartNumber = matched.kartNumber;
+    }
   }
 
   start() {
@@ -56,9 +81,6 @@ export class ApexTimingService {
     }
   }
 
-  /**
-   * Fetch 100% real live data directly from Kartódromo Lucas Guerrero transponders
-   */
   async fetchRealApexData() {
     const liveEndpoints = [
       `https://live.apex-timing.com/kartodromo-lucas-guerrero/live.json`,
@@ -92,14 +114,11 @@ export class ApexTimingService {
       this.isLiveConnected = false;
       this.state.isLiveConnected = false;
       this.state.sessionName = "Pista sin tanda activa en este momento";
-      this.state.statusMessage = "Apex Timing: En espera de actividad en Kartódromo Lucas Guerrero";
+      this.state.statusMessage = "Apex Timing: Esperando salida a pista";
       this.notify();
     }
   }
 
-  /**
-   * Extract EXACT Position, Kart Number, Laps and Times from Apex JSON
-   */
   processRealApexJson(data) {
     this.isLiveConnected = true;
     this.state.isLiveConnected = true;
@@ -115,12 +134,8 @@ export class ApexTimingService {
 
     if (Array.isArray(rawDrivers) && rawDrivers.length > 0) {
       this.state.drivers = rawDrivers.map((d, index) => {
-        // EXACT POSITION EXTRACTION FROM APEX TIMING
         const position = Number(d.pos || d.position || d.p || (index + 1));
-        
-        // EXACT KART NUMBER EXTRACTION FROM APEX TIMING
         const kartNumber = Number(d.kart_number || d.kart || d.number || d.no || d.num || 0);
-        
         const name = d.name || d.driver || d.competitor || `Kart #${kartNumber}`;
         const lastLapMs = Number(d.last_lap_ms || d.last_lap || d.last_time || 0);
         const bestLapMs = Number(d.best_lap_ms || d.best_lap || d.best_time || 0);
@@ -145,7 +160,6 @@ export class ApexTimingService {
           isSessionBest: Boolean(d.is_session_best || d.sb)
         };
 
-        // Record real lap into Supabase pipeline
         if (lastLapMs > 0 && kartNumber > 0) {
           supabaseExporter.recordLap({
             id: crypto.randomUUID(),
@@ -170,7 +184,9 @@ export class ApexTimingService {
         return lapRecord;
       }).sort((a, b) => a.position - b.position);
 
-      // Calculate interval behind from real live position grid
+      // Auto-resolve kart number matching driver name
+      this.resolveTargetKart();
+
       for (let i = 0; i < this.state.drivers.length - 1; i++) {
         this.state.drivers[i].intervalBehindMs = this.state.drivers[i + 1].intervalAheadMs;
       }
