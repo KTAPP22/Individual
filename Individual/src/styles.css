@@ -1,0 +1,113 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:ital,wght@0,300;0,500;0,700;0,800;1,800&family=Inter:wght@400;600;700;900&family=Orbitron:wght@700;900&display=swap');
+
+:root {
+  --bg-black: #000000;
+  --bg-card: #0A0A0C;
+  --bg-card-border: #1E1E24;
+  
+  --neon-green: #00FF66;
+  --neon-purple: #D946EF;
+  --neon-red: #FF3366;
+  --neon-yellow: #FFCC00;
+  --neon-blue: #00E5FF;
+  --stark-white: #FFFFFF;
+  --muted-gray: #6B7280;
+  --dark-gray: #121216;
+
+  --font-mono: 'JetBrains Mono', monospace;
+  --font-sans: 'Inter', sans-serif;
+  --font-display: 'Orbitron', sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}
+
+html, body {
+  width: 100%;
+  height: 100dvh;
+  background-color: var(--bg-black);
+  color: var(--stark-white);
+  font-family: var(--font-sans);
+  overflow: hidden;
+  position: fixed;
+}
+
+#root {
+  width: 100%;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-black);
+}
+
+.font-mono {
+  font-family: var(--font-mono);
+}
+
+.font-display {
+  font-family: var(--font-display);
+}
+
+/* Custom Glow Effects */
+.glow-green {
+  text-shadow: 0 0 15px rgba(0, 255, 102, 0.6);
+}
+
+.glow-red {
+  text-shadow: 0 0 15px rgba(255, 51, 102, 0.7);
+}
+
+.glow-yellow {
+  text-shadow: 0 0 15px rgba(255, 204, 0, 0.6);
+}
+
+.glow-purple {
+  text-shadow: 0 0 15px rgba(217, 70, 239, 0.7);
+}
+
+.box-glow-green {
+  box-shadow: 0 0 20px rgba(0, 255, 102, 0.25);
+}
+
+.box-glow-red {
+  box-shadow: 0 0 20px rgba(255, 51, 102, 0.3);
+}
+
+/* Flash Animations */
+@keyframes alertFlash {
+  0%, 100% { background-color: var(--bg-black); }
+  50% { background-color: rgba(255, 51, 102, 0.35); }
+}
+
+.animate-alert-flash {
+  animation: alertFlash 0.8s ease-in-out infinite;
+}
+
+@keyframes purpleFlash {
+  0%, 100% { border-color: var(--neon-purple); }
+  50% { border-color: #FFFFFF; background-color: rgba(217, 70, 239, 0.15); }
+}
+
+.animate-purple-flash {
+  animation: purpleFlash 1s infinite alternate;
+}
+
+/* Custom Scrollbars for tabular views */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-black);
+}
+
+::-webkit-scrollbar-thumb {
+  background: #2A2A35;
+  border-radius: 2px;
+}
