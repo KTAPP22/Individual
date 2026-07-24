@@ -31,43 +31,22 @@ export function App() {
 
   return e(
     'div',
-    { className: 'w-full h-full flex flex-col bg-black text-white overflow-hidden' },
+    { className: 'w-screen h-screen bg-black text-white overflow-hidden relative select-none' },
 
-    // Header Navigation Bar (Ultra Minimalist)
+    // Floating Gear Button (Top Right Discreet Config)
     e(
-      'header',
-      { className: 'px-2 py-0.5 bg-[#0A0A0C] border-b border-gray-800 flex justify-between items-center z-20 h-6' },
-      e('div', { className: 'flex items-center gap-1.5' },
-        e('div', { className: 'w-2 h-2 rounded-full bg-[#00FF66]' }),
-        e('span', { className: 'font-display font-extrabold text-[10px] tracking-wider text-white' }, 'APEX KART HUD')
-      ),
-
-      // Target Kart Selector Quick Badge
-      e(
-        'button',
-        {
-          onClick: () => setIsSettingsOpen(true),
-          className: 'px-2 py-0.2 bg-gray-900 border border-gray-800 rounded flex items-center gap-1'
-        },
-        e('span', { className: 'text-[9px] text-gray-400 font-mono uppercase' }, 'KART:'),
-        e('span', { className: 'text-xs font-mono font-black text-[#00FF66]' }, `#${targetKart}`)
-      ),
-
-      // Settings Icon
-      e(
-        'button',
-        {
-          onClick: () => setIsSettingsOpen(true),
-          className: 'px-1.5 py-0.2 rounded bg-gray-900 border border-gray-800 text-gray-300 text-[10px]'
-        },
-        '⚙️'
-      )
+      'button',
+      {
+        onClick: () => setIsSettingsOpen(true),
+        className: 'absolute top-1 right-2 z-30 opacity-40 hover:opacity-100 bg-black/60 border border-gray-800 text-gray-400 p-1 rounded-full text-xs transition-opacity'
+      },
+      '⚙️'
     ),
 
-    // Main Content Area (Dedicated Full Screen Telemetry)
+    // Main Content Area (Edge-to-Edge Pure Telemetry Canvas)
     e(
       'main',
-      { className: 'flex-1 overflow-hidden relative' },
+      { className: 'w-full h-full overflow-hidden' },
       e(PitboardHUD, { state: timingState, targetKart, apexService: apexTimingService })
     ),
 
