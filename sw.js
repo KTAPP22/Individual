@@ -1,4 +1,4 @@
-const CACHE_NAME = 'karthud-v5';
+const CACHE_NAME = 'karthud-v2.0.0';
 const ASSETS = [
   './',
   './index.html',
@@ -35,7 +35,7 @@ self.addEventListener('activate', (event) => {
   self.clients.claim();
 });
 
-// Network-First strategy to guarantee latest version across all mobile & desktop devices
+// Network-First Strategy to guarantee instant updates on desktop PC & mobile
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
   event.respondWith(
