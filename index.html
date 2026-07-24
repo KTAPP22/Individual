@@ -701,13 +701,11 @@
               <div className="flex-1 flex flex-col justify-around py-1.5 font-mono gap-1.5">
                 
                 <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
-                  <div className="flex flex-col overflow-hidden mr-2">
+                  <div className="flex flex-col">
                     <span className="text-xs sm:text-sm md:text-base font-bold text-gray-400">GAP (LÍDER)</span>
-                    <span className="text-[9px] sm:text-[10px] text-gray-500 truncate font-semibold">
-                      Líder: {hasDrivers && state.drivers[0] ? state.drivers[0].name : '---'}
-                    </span>
+                    <span className="text-[9px] sm:text-[10px] text-gray-500">Diferencia total</span>
                   </div>
-                  <span className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black shrink-0 ${isLeader ? 'text-yellow-400' : 'text-white'}`}>
+                  <span className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black ${isLeader ? 'text-yellow-400' : 'text-white'}`}>
                     {driver ? (isLeader ? 'LÍDER' : apexTimingService.formatGap(driver.gapLeaderMs)) : '--:--'}
                   </span>
                 </div>
