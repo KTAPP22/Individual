@@ -9,14 +9,14 @@
   <title>Karting Live Timing HUD - Lucas Guerrero</title>
 
   <!-- PWA Manifest -->
-  <link rel="manifest" href="./manifest.json?v=6.0.0">
+  <link rel="manifest" href="./manifest.json?v=9.9.9">
   <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' fill='%23000000'/><text x='50' y='65' font-size='60' text-anchor='middle' fill='%2300FF66' font-family='monospace' font-weight='bold'>K</text></svg>">
 
   <!-- Tailwind CSS CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   
-  <!-- Custom Styles with Version Cache Busting v6.0.0 -->
-  <link rel="stylesheet" href="./src/styles.css?v=6.0.0">
+  <!-- Custom Styles with Hard Cache Busting -->
+  <link rel="stylesheet" href="./src/styles.css?v=9.9.9">
 
   <!-- React 18 & ReactDOM CDN -->
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
@@ -25,20 +25,33 @@
 <body class="bg-black text-white antialiased overflow-hidden select-none">
   <div id="root"></div>
 
-  <!-- Force Clear Legacy Browser Caches on Desktop & Mobile -->
+  <!-- Aggressively WIPE OUT any Service Worker and Cache to force loading fresh code on PC & Mobile -->
   <script>
+    // Unregister all service workers
     if ('serviceWorker' in navigator) {
       navigator.serviceWorker.getRegistrations().then(registrations => {
         for (let registration of registrations) {
-          registration.update();
+          registration.unregister().then(() => {
+            console.log('[PWA] ServiceWorker unregistered successfully');
+          });
+        }
+      });
+    }
+    // Delete all browser caches
+    if ('caches' in window) {
+      caches.keys().then(names => {
+        for (let name of names) {
+          caches.delete(name).then(() => {
+            console.log('[PWA] Cache storage cleared:', name);
+          });
         }
       });
     }
   </script>
 
-  <!-- Main Application Entry Script with Cache Busting v6.0.0 -->
+  <!-- Main Application Entry Script with Hard Cache Busting -->
   <script type="module">
-    import { App } from './src/app.js?v=6.0.0';
+    import { App } from './src/app.js?v=9.9.9';
     const rootElement = document.getElementById('root');
     const root = ReactDOM.createRoot(rootElement);
     root.render(React.createElement(App));
