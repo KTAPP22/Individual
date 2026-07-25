@@ -747,15 +747,15 @@
                 </div>
               </div>
 
-              <div className={`bg-[#0A0A0E] border-2 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl text-center min-h-[80px] ${isLandscapeLayout ? 'h-[40%]' : 'h-auto'} ${driver && driver.isSessionBest ? 'border-purple-500' : 'border-gray-800'}`}>
+              <div className={`bg-[#0A0A0E] border-2 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl text-center min-h-[80px] ${isLandscapeLayout ? 'h-[40%]' : 'h-auto'} border-purple-600/50`}>
                 <div className="flex justify-between items-center">
                   <span className="text-gray-400 font-black text-xs uppercase tracking-widest">MEJOR VUELTA</span>
-                  <span className={`text-xs px-2 py-0.5 rounded font-mono font-bold ${driver && driver.isSessionBest ? 'bg-purple-600 text-white' : 'bg-emerald-500/20 text-[#00FF66]'}`}>
-                    {driver && driver.isSessionBest ? 'SB' : 'PB'}
+                  <span className="text-xs px-2 py-0.5 rounded font-mono font-bold bg-purple-600/20 text-purple-300 border border-purple-500/30">
+                    BEST
                   </span>
                 </div>
                 <div className="my-auto">
-                  <span className={`text-2xl sm:text-3xl md:text-4xl font-black font-mono ${driver && driver.isSessionBest ? 'text-purple-400' : 'text-[#00FF66]'}`}>
+                  <span className="text-2xl sm:text-3xl md:text-4xl font-black font-mono text-purple-400">
                     {driver ? apexTimingService.formatTime(driver.bestLapMs) : '--:--.---'}
                   </span>
                 </div>
