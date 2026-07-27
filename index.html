@@ -8,7 +8,7 @@
   <meta http-equiv="Expires" content="0" />
   <meta name="theme-color" content="#000000" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black" />
   <meta name="mobile-web-app-capable" content="yes" />
   <link rel="apple-touch-icon" href="icon-22.jpg" />
   <link rel="icon" type="image/jpeg" href="icon-22.jpg" />
@@ -59,10 +59,10 @@
       -webkit-tap-highlight-color: transparent;
     }
     .safe-area-inset {
-      padding-top: max(12px, calc(env(safe-area-inset-top, 0px) + 8px));
-      padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
-      padding-left: max(8px, env(safe-area-inset-left, 0px));
-      padding-right: max(8px, env(safe-area-inset-right, 0px));
+      padding-top: max(50px, calc(env(safe-area-inset-top, 0px) + 16px));
+      padding-bottom: max(16px, env(safe-area-inset-bottom, 0px));
+      padding-left: max(10px, env(safe-area-inset-left, 0px));
+      padding-right: max(10px, env(safe-area-inset-right, 0px));
     }
   </style>
 </head>
@@ -683,13 +683,13 @@
           </div>
 
           {/* TELEMETRY GRID */}
-          <div className={`w-full flex-1 ${isLandscapeLayout ? 'grid grid-cols-12 gap-2 overflow-hidden' : 'flex flex-col justify-between gap-2 overflow-hidden py-1 max-w-md mx-auto'}`}>
+          <div className={`w-full flex-1 ${isLandscapeLayout ? 'grid grid-cols-12 gap-2 overflow-hidden' : 'flex flex-col justify-around gap-2 overflow-hidden py-1 max-w-md mx-auto my-auto'}`}>
             
             {/* ROW 1: POSICIÓN Y VUELTAS (2 EQUAL 50/50 CARDS IN PORTRAIT, COL-SPAN-3 IN LANDSCAPE) */}
-            <div className={`${isLandscapeLayout ? 'col-span-3 flex flex-col gap-2 h-full' : 'grid grid-cols-2 gap-2 w-full h-[28%]'}`}>
+            <div className={`${isLandscapeLayout ? 'col-span-3 flex flex-col gap-2 h-full' : 'grid grid-cols-2 gap-2 w-full min-h-[110px]'}`}>
               
               {/* CARD: POSICIÓN */}
-              <div className="bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 flex flex-col justify-between items-center text-center shadow-2xl relative h-full">
+              <div className="bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 flex flex-col justify-between items-center text-center shadow-2xl relative h-full min-h-[110px]">
                 <span className="text-gray-400 font-black text-[10px] uppercase tracking-widest">POSICIÓN</span>
                 {isSearching ? (
                   <div className="my-auto flex flex-col items-center gap-0.5">
@@ -697,9 +697,9 @@
                     <span className="text-[9px] font-mono text-yellow-400 font-bold animate-pulse">🔍 Buscando...</span>
                   </div>
                 ) : (
-                  <div className="my-auto flex items-baseline justify-center">
+                  <div className="my-1 flex items-baseline justify-center">
                     <span className="text-lg font-black font-mono text-gray-500 mr-0.5">P</span>
-                    <span className={`text-4xl sm:text-5xl font-black font-mono leading-none ${isLeader ? 'text-yellow-400' : 'text-[#00FF66]'}`}>
+                    <span className={`text-4xl font-black font-mono leading-none ${isLeader ? 'text-yellow-400' : 'text-[#00FF66]'}`}>
                       {driver ? driver.position : '--'}
                     </span>
                   </div>
@@ -713,10 +713,10 @@
               </div>
 
               {/* CARD: TOTAL VUELTAS */}
-              <div className="bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 flex flex-col justify-between items-center text-center shadow-2xl h-full">
+              <div className="bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 flex flex-col justify-between items-center text-center shadow-2xl h-full min-h-[110px]">
                 <span className="text-gray-400 font-black text-[10px] uppercase tracking-widest">VUELTAS</span>
-                <div className="my-auto flex items-baseline justify-center gap-0.5 font-mono font-black">
-                  <span className="text-3xl sm:text-4xl text-white">{driver ? driver.currentLap : '0'}</span>
+                <div className="my-1 flex items-baseline justify-center gap-0.5 font-mono font-black">
+                  <span className="text-3xl text-white">{driver ? driver.currentLap : '0'}</span>
                   <span className="text-xs text-gray-500">/{state.totalLaps || '--'}</span>
                 </div>
                 <div className="w-full flex justify-center">
@@ -729,13 +729,13 @@
             </div>
 
             {/* ROW 2: GAP E INTERVALOS (FULL WIDTH IN PORTRAIT, COL-SPAN-5 IN LANDSCAPE) */}
-            <div className={`bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 flex flex-col justify-between shadow-2xl ${isLandscapeLayout ? 'col-span-5 h-full' : 'w-full flex-1 my-0.5'}`}>
+            <div className={`bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 flex flex-col justify-between shadow-2xl ${isLandscapeLayout ? 'col-span-5 h-full' : 'w-full py-2.5 my-1 min-h-[160px]'}`}>
               <span className="text-gray-400 font-black text-[10px] uppercase tracking-widest text-center border-b border-gray-800 pb-1">GAP E INTERVALOS (SEG)</span>
               
-              <div className="flex-1 flex flex-col justify-around py-1 font-mono gap-1">
+              <div className="flex-1 flex flex-col justify-around py-1 font-mono gap-1.5">
                 
                 {/* FILA 1: GAP LÍDER */}
-                <div className="flex justify-between items-center bg-black/80 px-2.5 py-1.5 rounded-xl border border-gray-800">
+                <div className="flex justify-between items-center bg-black/80 px-3 py-2 rounded-xl border border-gray-800">
                   <div className="flex flex-col text-left">
                     <span className="text-xs font-bold text-gray-400">GAP (LÍDER)</span>
                     <span className="text-[9px] text-gray-500 truncate max-w-[100px]">{isLeader && driver ? driver.name : 'Diferencia total'}</span>
@@ -747,7 +747,7 @@
 
                 {/* FILA 2: Si es líder → P2. Si no → intervalo delante */}
                 {isLeader ? (
-                  <div className="flex justify-between items-center bg-black/80 px-2.5 py-1.5 rounded-xl border border-cyan-800/50">
+                  <div className="flex justify-between items-center bg-black/80 px-3 py-2 rounded-xl border border-cyan-800/50">
                     <div className="flex flex-col text-left">
                       <span className="text-xs font-bold text-cyan-400">{p2Driver ? `P2 · #${p2Driver.kartNumber}` : 'P2'}</span>
                       <span className="text-[9px] text-cyan-600 truncate max-w-[100px]">{p2Driver ? p2Driver.name : 'Sin datos'}</span>
@@ -757,7 +757,7 @@
                     </span>
                   </div>
                 ) : (
-                  <div className="flex justify-between items-center bg-black/80 px-2.5 py-1.5 rounded-xl border border-gray-800">
+                  <div className="flex justify-between items-center bg-black/80 px-3 py-2 rounded-xl border border-gray-800">
                     <div className="flex flex-col text-left">
                       <span className="text-xs font-bold text-[#00FF66]">{driverAhead ? `INTERVALO ▲ #${driverAhead.kartNumber}` : 'INTERVALO DELANTE'}</span>
                       <span className="text-[9px] text-gray-500 truncate max-w-[100px]">{driverAhead ? driverAhead.name : 'Kart anterior'}</span>
@@ -770,7 +770,7 @@
 
                 {/* FILA 3: Si es líder → P3. Si no → intervalo detrás */}
                 {isLeader ? (
-                  <div className="flex justify-between items-center bg-black/80 px-2.5 py-1.5 rounded-xl border border-orange-800/50">
+                  <div className="flex justify-between items-center bg-black/80 px-3 py-2 rounded-xl border border-orange-800/50">
                     <div className="flex flex-col text-left">
                       <span className="text-xs font-bold text-orange-400">{p3Driver ? `P3 · #${p3Driver.kartNumber}` : 'P3'}</span>
                       <span className="text-[9px] text-orange-600 truncate max-w-[100px]">{p3Driver ? p3Driver.name : 'Sin datos'}</span>
@@ -780,7 +780,7 @@
                     </span>
                   </div>
                 ) : (
-                  <div className="flex justify-between items-center bg-black/80 px-2.5 py-1.5 rounded-xl border border-gray-800">
+                  <div className="flex justify-between items-center bg-black/80 px-3 py-2 rounded-xl border border-gray-800">
                     <div className="flex flex-col text-left">
                       <span className="text-xs font-bold text-red-400">{driverBehind ? `INTERVALO ▼ #${driverBehind.kartNumber}` : 'INTERVALO DETRÁS'}</span>
                       <span className="text-[9px] text-gray-500 truncate max-w-[100px]">{driverBehind ? driverBehind.name : 'Kart posterior'}</span>
@@ -795,10 +795,10 @@
             </div>
 
             {/* ROW 3: ÚLTIMA VUELTA Y MEJOR VUELTA (2 EQUAL 50/50 CARDS IN PORTRAIT, COL-SPAN-4 IN LANDSCAPE) */}
-            <div className={`${isLandscapeLayout ? 'col-span-4 flex flex-col gap-2 h-full' : 'grid grid-cols-2 gap-2 w-full h-[28%]'}`}>
+            <div className={`${isLandscapeLayout ? 'col-span-4 flex flex-col gap-2 h-full' : 'grid grid-cols-2 gap-2 w-full min-h-[95px]'}`}>
               
               {/* CARD: ÚLTIMA VUELTA */}
-              <div className="bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 flex flex-col justify-between items-center text-center shadow-2xl h-full">
+              <div className="bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 flex flex-col justify-between items-center text-center shadow-2xl h-full min-h-[95px]">
                 <div className="w-full flex justify-between items-center">
                   <span className="text-gray-400 font-black text-[10px] uppercase tracking-widest">ÚLTIMA</span>
                   <span className={`text-[10px] font-mono font-black ${deltaLastVsBest <= 0 ? 'text-[#00FF66]' : 'text-yellow-400'}`}>{deltaFormatted}</span>
@@ -811,7 +811,7 @@
               </div>
 
               {/* CARD: MEJOR VUELTA */}
-              <div className="bg-[#0A0A0E] border-2 border-purple-600/50 rounded-2xl p-2 flex flex-col justify-between items-center text-center shadow-2xl h-full">
+              <div className="bg-[#0A0A0E] border-2 border-purple-600/50 rounded-2xl p-2.5 flex flex-col justify-between items-center text-center shadow-2xl h-full min-h-[95px]">
                 <div className="w-full flex justify-between items-center">
                   <span className="text-gray-400 font-black text-[10px] uppercase tracking-widest">MEJOR</span>
                   <span className="text-[9px] px-1.5 py-0.5 rounded font-mono font-bold bg-purple-600/20 text-purple-300 border border-purple-500/30">
