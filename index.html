@@ -221,12 +221,21 @@
       start() {
         if (this.pollTimerId) return;
         this.fetchRealApexData();
-        this.pollTimerId = setInterval(() => this.fetchRealApexData(), 2500);
+        // Jitter polling: 3s ± 500ms to avoid 6+ devices colliding on the same proxy
+        const scheduleNext = () => {
+          const jitter = Math.floor(Math.random() * 1000) - 500; // -500ms to +500ms
+          const interval = Math.max(2000, 3000 + jitter);
+          this.pollTimerId = setTimeout(() => {
+            this.fetchRealApexData();
+            scheduleNext();
+          }, interval);
+        };
+        scheduleNext();
       }
 
       stop() {
         if (this.pollTimerId) {
-          clearInterval(this.pollTimerId);
+          clearTimeout(this.pollTimerId);
           this.pollTimerId = null;
         }
       }
@@ -578,10 +587,18 @@
         ? state.drivers.findIndex(d => d.name && d.name.toLowerCase().includes(currentTargetName.toLowerCase()))
         : -1;
 
-      const driver = matchedIndex !== -1 ? state.drivers[matchedIndex] : (hasDrivers ? state.drivers[0] : null);
+      // CAMBIO 3: Nunca usar drivers[0] como fallback — solo mostrar datos del piloto configurado
+      const driver = matchedIndex !== -1 ? state.drivers[matchedIndex] : null;
       const driverAhead = (matchedIndex > 0 && hasDrivers) ? state.drivers[matchedIndex - 1] : null;
       const driverBehind = (matchedIndex >= 0 && matchedIndex < state.drivers.length - 1 && hasDrivers) ? state.drivers[matchedIndex + 1] : null;
       const isLeader = driver ? driver.position === 1 : false;
+
+      // CAMBIO 2: Cuando es líder, obtener P2 y P3 para mostrar sus gaps
+      const p2Driver = (isLeader && hasDrivers && state.drivers.length > 1) ? state.drivers[1] : null;
+      const p3Driver = (isLeader && hasDrivers && state.drivers.length > 2) ? state.drivers[2] : null;
+
+      // Estado de búsqueda: hay datos en el timing pero el piloto no aparece
+      const isSearching = hasDrivers && !driver && state.isLiveConnected;
 
       const deltaLastVsBest = driver ? (driver.lastLapMs - driver.bestLapMs) : 0;
       const deltaFormatted = !driver || driver.lastLapMs === 0
@@ -672,12 +689,19 @@
             <div className={`flex gap-1.5 sm:gap-2 ${isLandscapeLayout ? 'col-span-3 flex-col h-full' : 'flex-row w-full h-auto'}`}>
               <div className="flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between items-center text-center shadow-2xl relative min-h-[110px]">
                 <span className="text-gray-400 font-black text-xs uppercase tracking-widest">POSICIÓN</span>
-                <div className="my-auto flex items-baseline justify-center">
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-black font-mono text-gray-500 mr-1">P</span>
-                  <span className={`text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black font-mono leading-none ${isLeader ? 'text-yellow-400' : 'text-[#00FF66]'}`}>
-                    {driver ? driver.position : '--'}
-                  </span>
-                </div>
+                {isSearching ? (
+                  <div className="my-auto flex flex-col items-center gap-2">
+                    <span className="text-4xl sm:text-5xl md:text-6xl font-black font-mono text-gray-600 animate-pulse">--</span>
+                    <span className="text-[10px] sm:text-xs font-mono text-yellow-400 font-bold animate-pulse">🔍 Buscando a {currentTargetName}...</span>
+                  </div>
+                ) : (
+                  <div className="my-auto flex items-baseline justify-center">
+                    <span className="text-2xl sm:text-3xl md:text-4xl font-black font-mono text-gray-500 mr-1">P</span>
+                    <span className={`text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black font-mono leading-none ${isLeader ? 'text-yellow-400' : 'text-[#00FF66]'}`}>
+                      {driver ? driver.position : '--'}
+                    </span>
+                  </div>
+                )}
                 <div className="flex flex-col items-center gap-0.5 w-full">
                   <span className="text-xs sm:text-sm font-mono text-white font-extrabold truncate max-w-full px-1">{driver ? driver.name : currentTargetName}</span>
                   <span className="text-[10px] sm:text-xs font-mono text-gray-300 font-bold bg-white/10 px-2 py-0.5 rounded-md">
@@ -700,35 +724,62 @@
               <span className="text-gray-400 font-black text-xs uppercase tracking-widest text-center border-b border-gray-800 pb-1">GAP E INTERVALOS (SEG)</span>
               <div className="flex-1 flex flex-col justify-around py-1.5 font-mono gap-1.5">
                 
+                {/* FILA 1: GAP LÍDER — siempre igual */}
                 <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
                   <div className="flex flex-col">
                     <span className="text-xs sm:text-sm md:text-base font-bold text-gray-400">GAP (LÍDER)</span>
-                    <span className="text-[9px] sm:text-[10px] text-gray-500">Diferencia total</span>
+                    <span className="text-[9px] sm:text-[10px] text-gray-500">{isLeader && driver ? driver.name : 'Diferencia total'}</span>
                   </div>
                   <span className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black ${isLeader ? 'text-yellow-400' : 'text-white'}`}>
                     {driver ? (isLeader ? 'LÍDER' : apexTimingService.formatGap(driver.gapLeaderMs)) : '--:--'}
                   </span>
                 </div>
 
-                <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
-                  <div className="flex flex-col">
-                    <span className="text-xs sm:text-sm md:text-base font-bold text-[#00FF66]">{driverAhead ? `INTERVALO ▲ #${driverAhead.kartNumber}` : 'INTERVALO DELANTE'}</span>
-                    <span className="text-[9px] sm:text-[10px] text-gray-500">{driverAhead ? driverAhead.name : 'Kart anterior'}</span>
+                {/* FILA 2: Si es líder → mostrar P2. Si no → intervalo delante */}
+                {isLeader ? (
+                  <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-cyan-800/50">
+                    <div className="flex flex-col">
+                      <span className="text-xs sm:text-sm md:text-base font-bold text-cyan-400">{p2Driver ? `P2 · #${p2Driver.kartNumber}` : 'P2'}</span>
+                      <span className="text-[9px] sm:text-[10px] text-cyan-600">{p2Driver ? p2Driver.name : 'Sin datos'}</span>
+                    </div>
+                    <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-cyan-400">
+                      {p2Driver ? apexTimingService.formatGap(p2Driver.gapLeaderMs) : '---'}
+                    </span>
                   </div>
-                  <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-[#00FF66]">
-                    {driverAhead ? apexTimingService.formatGap(driver.intervalAheadMs) : '---'}
-                  </span>
-                </div>
+                ) : (
+                  <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
+                    <div className="flex flex-col">
+                      <span className="text-xs sm:text-sm md:text-base font-bold text-[#00FF66]">{driverAhead ? `INTERVALO ▲ #${driverAhead.kartNumber}` : 'INTERVALO DELANTE'}</span>
+                      <span className="text-[9px] sm:text-[10px] text-gray-500">{driverAhead ? driverAhead.name : 'Kart anterior'}</span>
+                    </div>
+                    <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-[#00FF66]">
+                      {driverAhead ? apexTimingService.formatGap(driver.intervalAheadMs) : '---'}
+                    </span>
+                  </div>
+                )}
 
-                <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
-                  <div className="flex flex-col">
-                    <span className="text-xs sm:text-sm md:text-base font-bold text-red-400">{driverBehind ? `INTERVALO ▼ #${driverBehind.kartNumber}` : 'INTERVALO DETRÁS'}</span>
-                    <span className="text-[9px] sm:text-[10px] text-gray-500">{driverBehind ? driverBehind.name : 'Kart posterior'}</span>
+                {/* FILA 3: Si es líder → mostrar P3. Si no → intervalo detrás */}
+                {isLeader ? (
+                  <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-orange-800/50">
+                    <div className="flex flex-col">
+                      <span className="text-xs sm:text-sm md:text-base font-bold text-orange-400">{p3Driver ? `P3 · #${p3Driver.kartNumber}` : 'P3'}</span>
+                      <span className="text-[9px] sm:text-[10px] text-orange-600">{p3Driver ? p3Driver.name : 'Sin datos'}</span>
+                    </div>
+                    <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-orange-400">
+                      {p3Driver ? apexTimingService.formatGap(p3Driver.gapLeaderMs) : '---'}
+                    </span>
                   </div>
-                  <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-red-400">
-                    {driverBehind ? apexTimingService.formatGap(driver.intervalBehindMs) : '---'}
-                  </span>
-                </div>
+                ) : (
+                  <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
+                    <div className="flex flex-col">
+                      <span className="text-xs sm:text-sm md:text-base font-bold text-red-400">{driverBehind ? `INTERVALO ▼ #${driverBehind.kartNumber}` : 'INTERVALO DETRÁS'}</span>
+                      <span className="text-[9px] sm:text-[10px] text-gray-500">{driverBehind ? driverBehind.name : 'Kart posterior'}</span>
+                    </div>
+                    <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-red-400">
+                      {driverBehind ? apexTimingService.formatGap(driver.intervalBehindMs) : '---'}
+                    </span>
+                  </div>
+                )}
 
               </div>
             </div>
