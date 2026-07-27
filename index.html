@@ -683,76 +683,76 @@
           </div>
 
           {/* TELEMETRY GRID */}
-          <div className={`w-full flex-1 grid gap-1.5 sm:gap-2 md:gap-3 ${isLandscapeLayout ? 'grid-cols-12 overflow-hidden' : 'grid-cols-1 overflow-y-auto'}`}>
+          <div className={`w-full flex-1 grid gap-1.5 sm:gap-2 md:gap-3 ${isLandscapeLayout ? 'grid-cols-12 overflow-hidden' : 'flex flex-col justify-between overflow-hidden py-0.5'}`}>
             
-            {/* COLUMN 1: POSITION AND LAPS */}
-            <div className={`flex gap-1.5 sm:gap-2 ${isLandscapeLayout ? 'col-span-3 flex-col h-full' : 'flex-row w-full h-auto'}`}>
-              <div className="flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between items-center text-center shadow-2xl relative min-h-[110px]">
-                <span className="text-gray-400 font-black text-xs uppercase tracking-widest">POSICIÓN</span>
+            {/* SECTION 1: POSITION AND LAPS */}
+            <div className={`flex gap-1.5 sm:gap-2 ${isLandscapeLayout ? 'col-span-3 flex-col h-full' : 'flex-row w-full h-[28%]'}`}>
+              <div className="flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 sm:p-3 flex flex-col justify-between items-center text-center shadow-2xl relative min-h-[85px]">
+                <span className="text-gray-400 font-black text-[10px] sm:text-xs uppercase tracking-widest">POSICIÓN</span>
                 {isSearching ? (
-                  <div className="my-auto flex flex-col items-center gap-2">
-                    <span className="text-4xl sm:text-5xl md:text-6xl font-black font-mono text-gray-600 animate-pulse">--</span>
-                    <span className="text-[10px] sm:text-xs font-mono text-yellow-400 font-bold animate-pulse">🔍 Buscando a {currentTargetName}...</span>
+                  <div className="my-auto flex flex-col items-center gap-1">
+                    <span className="text-3xl sm:text-4xl md:text-5xl font-black font-mono text-gray-600 animate-pulse">--</span>
+                    <span className="text-[9px] sm:text-[10px] font-mono text-yellow-400 font-bold animate-pulse">🔍 Buscando a {currentTargetName}...</span>
                   </div>
                 ) : (
                   <div className="my-auto flex items-baseline justify-center">
-                    <span className="text-2xl sm:text-3xl md:text-4xl font-black font-mono text-gray-500 mr-1">P</span>
-                    <span className={`text-5xl sm:text-6xl md:text-7xl lg:text-8xl font-black font-mono leading-none ${isLeader ? 'text-yellow-400' : 'text-[#00FF66]'}`}>
+                    <span className="text-xl sm:text-2xl md:text-3xl font-black font-mono text-gray-500 mr-1">P</span>
+                    <span className={`text-4xl sm:text-6xl md:text-7xl lg:text-8xl font-black font-mono leading-none ${isLeader ? 'text-yellow-400' : 'text-[#00FF66]'}`}>
                       {driver ? driver.position : '--'}
                     </span>
                   </div>
                 )}
                 <div className="flex flex-col items-center gap-0.5 w-full">
                   <span className="text-xs sm:text-sm font-mono text-white font-extrabold truncate max-w-full px-1">{driver ? driver.name : currentTargetName}</span>
-                  <span className="text-[10px] sm:text-xs font-mono text-gray-300 font-bold bg-white/10 px-2 py-0.5 rounded-md">
+                  <span className="text-[9px] sm:text-xs font-mono text-gray-300 font-bold bg-white/10 px-2 py-0.5 rounded-md">
                     {driver ? `KART #${driver.kartNumber}` : 'BUSCANDO KART...'}
                   </span>
                 </div>
               </div>
 
-              <div className={`bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between items-center text-center shadow-2xl min-h-[100px] ${isLandscapeLayout ? 'w-full h-[35%]' : 'w-[40%] h-auto'}`}>
-                <span className="text-gray-400 font-black text-xs uppercase tracking-widest">TOTAL VUELTAS</span>
-                <div className="my-auto flex items-baseline gap-1 font-mono font-black">
-                  <span className="text-3xl sm:text-4xl md:text-5xl text-white">{driver ? driver.currentLap : '0'}</span>
-                  <span className="text-lg sm:text-xl md:text-2xl text-gray-500">/ {state.totalLaps || '--'}</span>
+              <div className={`bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between items-center text-center shadow-2xl ${isLandscapeLayout ? 'w-full h-[35%]' : 'w-[38%] h-full min-h-[85px]'}`}>
+                <span className="text-gray-400 font-black text-[10px] sm:text-xs uppercase tracking-widest">VUELTAS</span>
+                <div className="my-auto flex items-baseline gap-0.5 font-mono font-black">
+                  <span className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl text-white">{driver ? driver.currentLap : '0'}</span>
+                  <span className="text-sm sm:text-lg md:text-xl text-gray-500">/{state.totalLaps || '--'}</span>
                 </div>
               </div>
             </div>
 
-            {/* COLUMN 2: GAPS & INTERVALS */}
-            <div className={`bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl ${isLandscapeLayout ? 'col-span-5 h-full' : 'w-full h-auto min-h-[160px]'}`}>
-              <span className="text-gray-400 font-black text-xs uppercase tracking-widest text-center border-b border-gray-800 pb-1">GAP E INTERVALOS (SEG)</span>
-              <div className="flex-1 flex flex-col justify-around py-1.5 font-mono gap-1.5">
+            {/* SECTION 2: GAPS & INTERVALS */}
+            <div className={`bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 sm:p-3 flex flex-col justify-between shadow-2xl ${isLandscapeLayout ? 'col-span-5 h-full' : 'w-full flex-1 my-0.5'}`}>
+              <span className="text-gray-400 font-black text-[10px] sm:text-xs uppercase tracking-widest text-center border-b border-gray-800 pb-0.5">GAP E INTERVALOS (SEG)</span>
+              <div className="flex-1 flex flex-col justify-around py-1 font-mono gap-1 sm:gap-1.5">
                 
                 {/* FILA 1: GAP LÍDER — siempre igual */}
-                <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
+                <div className="flex justify-between items-center bg-black/80 px-2.5 sm:px-4 py-1 sm:py-2 rounded-xl border border-gray-800">
                   <div className="flex flex-col">
-                    <span className="text-xs sm:text-sm md:text-base font-bold text-gray-400">GAP (LÍDER)</span>
+                    <span className="text-xs sm:text-sm font-bold text-gray-400">GAP (LÍDER)</span>
                     <span className="text-[9px] sm:text-[10px] text-gray-500">{isLeader && driver ? driver.name : 'Diferencia total'}</span>
                   </div>
-                  <span className={`text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black ${isLeader ? 'text-yellow-400' : 'text-white'}`}>
+                  <span className={`text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black ${isLeader ? 'text-yellow-400' : 'text-white'}`}>
                     {driver ? (isLeader ? 'LÍDER' : apexTimingService.formatGap(driver.gapLeaderMs)) : '--:--'}
                   </span>
                 </div>
 
                 {/* FILA 2: Si es líder → mostrar P2. Si no → intervalo delante */}
                 {isLeader ? (
-                  <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-cyan-800/50">
+                  <div className="flex justify-between items-center bg-black/80 px-2.5 sm:px-4 py-1 sm:py-2 rounded-xl border border-cyan-800/50">
                     <div className="flex flex-col">
-                      <span className="text-xs sm:text-sm md:text-base font-bold text-cyan-400">{p2Driver ? `P2 · #${p2Driver.kartNumber}` : 'P2'}</span>
-                      <span className="text-[9px] sm:text-[10px] text-cyan-600">{p2Driver ? p2Driver.name : 'Sin datos'}</span>
+                      <span className="text-xs sm:text-sm font-bold text-cyan-400">{p2Driver ? `P2 · #${p2Driver.kartNumber}` : 'P2'}</span>
+                      <span className="text-[9px] sm:text-[10px] text-cyan-600 truncate max-w-[120px]">{p2Driver ? p2Driver.name : 'Sin datos'}</span>
                     </div>
-                    <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-cyan-400">
+                    <span className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-cyan-400">
                       {p2Driver ? apexTimingService.formatGap(p2Driver.gapLeaderMs) : '---'}
                     </span>
                   </div>
                 ) : (
-                  <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
+                  <div className="flex justify-between items-center bg-black/80 px-2.5 sm:px-4 py-1 sm:py-2 rounded-xl border border-gray-800">
                     <div className="flex flex-col">
-                      <span className="text-xs sm:text-sm md:text-base font-bold text-[#00FF66]">{driverAhead ? `INTERVALO ▲ #${driverAhead.kartNumber}` : 'INTERVALO DELANTE'}</span>
-                      <span className="text-[9px] sm:text-[10px] text-gray-500">{driverAhead ? driverAhead.name : 'Kart anterior'}</span>
+                      <span className="text-xs sm:text-sm font-bold text-[#00FF66]">{driverAhead ? `INTERVALO ▲ #${driverAhead.kartNumber}` : 'INTERVALO DELANTE'}</span>
+                      <span className="text-[9px] sm:text-[10px] text-gray-500 truncate max-w-[120px]">{driverAhead ? driverAhead.name : 'Kart anterior'}</span>
                     </div>
-                    <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-[#00FF66]">
+                    <span className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-[#00FF66]">
                       {driverAhead ? apexTimingService.formatGap(driver.intervalAheadMs) : '---'}
                     </span>
                   </div>
@@ -760,22 +760,22 @@
 
                 {/* FILA 3: Si es líder → mostrar P3. Si no → intervalo detrás */}
                 {isLeader ? (
-                  <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-orange-800/50">
+                  <div className="flex justify-between items-center bg-black/80 px-2.5 sm:px-4 py-1 sm:py-2 rounded-xl border border-orange-800/50">
                     <div className="flex flex-col">
-                      <span className="text-xs sm:text-sm md:text-base font-bold text-orange-400">{p3Driver ? `P3 · #${p3Driver.kartNumber}` : 'P3'}</span>
-                      <span className="text-[9px] sm:text-[10px] text-orange-600">{p3Driver ? p3Driver.name : 'Sin datos'}</span>
+                      <span className="text-xs sm:text-sm font-bold text-orange-400">{p3Driver ? `P3 · #${p3Driver.kartNumber}` : 'P3'}</span>
+                      <span className="text-[9px] sm:text-[10px] text-orange-600 truncate max-w-[120px]">{p3Driver ? p3Driver.name : 'Sin datos'}</span>
                     </div>
-                    <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-orange-400">
+                    <span className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-orange-400">
                       {p3Driver ? apexTimingService.formatGap(p3Driver.gapLeaderMs) : '---'}
                     </span>
                   </div>
                 ) : (
-                  <div className="flex justify-between items-center bg-black/80 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-gray-800">
+                  <div className="flex justify-between items-center bg-black/80 px-2.5 sm:px-4 py-1 sm:py-2 rounded-xl border border-gray-800">
                     <div className="flex flex-col">
-                      <span className="text-xs sm:text-sm md:text-base font-bold text-red-400">{driverBehind ? `INTERVALO ▼ #${driverBehind.kartNumber}` : 'INTERVALO DETRÁS'}</span>
-                      <span className="text-[9px] sm:text-[10px] text-gray-500">{driverBehind ? driverBehind.name : 'Kart posterior'}</span>
+                      <span className="text-xs sm:text-sm font-bold text-red-400">{driverBehind ? `INTERVALO ▼ #${driverBehind.kartNumber}` : 'INTERVALO DETRÁS'}</span>
+                      <span className="text-[9px] sm:text-[10px] text-gray-500 truncate max-w-[120px]">{driverBehind ? driverBehind.name : 'Kart posterior'}</span>
                     </div>
-                    <span className="text-xl sm:text-2xl md:text-3xl lg:text-4xl font-black text-red-400">
+                    <span className="text-lg sm:text-2xl md:text-3xl lg:text-4xl font-black text-red-400">
                       {driverBehind ? apexTimingService.formatGap(driver.intervalBehindMs) : '---'}
                     </span>
                   </div>
@@ -784,29 +784,29 @@
               </div>
             </div>
 
-            {/* COLUMN 3: LAP TIMES */}
-            <div className={`flex flex-col gap-1.5 sm:gap-2 ${isLandscapeLayout ? 'col-span-4 h-full' : 'w-full h-auto'}`}>
-              <div className="flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl text-center min-h-[90px]">
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 font-black text-xs uppercase tracking-widest">ÚLTIMA VUELTA</span>
-                  <span className={`text-xs font-mono font-black ${deltaLastVsBest <= 0 ? 'text-[#00FF66]' : 'text-yellow-400'}`}>{deltaFormatted}</span>
+            {/* SECTION 3: LAP TIMES (SIDE-BY-SIDE IN PORTRAIT MODE) */}
+            <div className={`gap-1.5 sm:gap-2 ${isLandscapeLayout ? 'col-span-4 h-full flex flex-col' : 'grid grid-cols-2 w-full h-[28%]'}`}>
+              <div className="flex-1 bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 sm:p-3 flex flex-col justify-between shadow-2xl text-center min-h-[80px]">
+                <div className="flex justify-between items-center px-1">
+                  <span className="text-gray-400 font-black text-[10px] sm:text-xs uppercase tracking-widest">ÚLTIMA</span>
+                  <span className={`text-[10px] sm:text-xs font-mono font-black ${deltaLastVsBest <= 0 ? 'text-[#00FF66]' : 'text-yellow-400'}`}>{deltaFormatted}</span>
                 </div>
                 <div className="my-auto">
-                  <span className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-black font-mono text-white tracking-tighter">
+                  <span className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black font-mono text-white tracking-tighter">
                     {driver ? apexTimingService.formatTime(driver.lastLapMs) : '--:--.---'}
                   </span>
                 </div>
               </div>
 
-              <div className={`bg-[#0A0A0E] border-2 rounded-2xl p-2.5 sm:p-3 flex flex-col justify-between shadow-2xl text-center min-h-[80px] ${isLandscapeLayout ? 'h-[40%]' : 'h-auto'} border-purple-600/50`}>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 font-black text-xs uppercase tracking-widest">MEJOR VUELTA</span>
-                  <span className="text-xs px-2 py-0.5 rounded font-mono font-bold bg-purple-600/20 text-purple-300 border border-purple-500/30">
+              <div className={`bg-[#0A0A0E] border-2 rounded-2xl p-2 sm:p-3 flex flex-col justify-between shadow-2xl text-center min-h-[80px] ${isLandscapeLayout ? 'h-[40%]' : 'flex-1'} border-purple-600/50`}>
+                <div className="flex justify-between items-center px-1">
+                  <span className="text-gray-400 font-black text-[10px] sm:text-xs uppercase tracking-widest">MEJOR</span>
+                  <span className="text-[9px] sm:text-xs px-1.5 py-0.5 rounded font-mono font-bold bg-purple-600/20 text-purple-300 border border-purple-500/30">
                     BEST
                   </span>
                 </div>
                 <div className="my-auto">
-                  <span className="text-2xl sm:text-3xl md:text-4xl font-black font-mono text-purple-400">
+                  <span className="text-xl sm:text-3xl md:text-4xl lg:text-5xl font-black font-mono text-purple-400 tracking-tighter">
                     {driver ? apexTimingService.formatTime(driver.bestLapMs) : '--:--.---'}
                   </span>
                 </div>
