@@ -152,6 +152,7 @@
         ];
 
         this.sessionRows = new Map();
+        this.isDemoMode = false;
 
         this.state = {
           activeCircuitId: this.activeCircuitId,
@@ -162,6 +163,7 @@
           isLiveConnected: false,
           targetDriverName: this.targetDriverName,
           matchedKartNumber: 14,
+          isDemoMode: false,
           drivers: []
         };
       }
@@ -176,12 +178,48 @@
         this.listeners.forEach(cb => cb({ ...this.state }));
       }
 
+      toggleDemoMode() {
+        this.isDemoMode = !this.isDemoMode;
+        this.state.isDemoMode = this.isDemoMode;
+        if (this.isDemoMode) {
+          this.injectDemoData();
+        } else {
+          this.sessionRows.clear();
+          this.state.drivers = [];
+          this.state.isLiveConnected = false;
+          this.state.sessionName = "Esperando tanda en vivo...";
+          this.fetchRealApexData();
+        }
+        this.notify();
+      }
+
+      injectDemoData() {
+        const driverName = this.targetDriverName || 'Alex R.';
+        this.state.isLiveConnected = true;
+        this.state.sessionName = "Tanda Demo (Simulación)";
+        this.state.totalLaps = 15;
+        this.state.flagStatus = "GREEN";
+
+        this.state.drivers = [
+          { position: 1, kartNumber: 7, name: 'Carlos M.', lastLapMs: 38250, bestLapMs: 38210, currentLap: 12, gapLeaderMs: 0, intervalAheadMs: 0, intervalBehindMs: 450 },
+          { position: 2, kartNumber: 12, name: 'Mario K.', lastLapMs: 38380, bestLapMs: 38300, currentLap: 12, gapLeaderMs: 450, intervalAheadMs: 450, intervalBehindMs: 440 },
+          { position: 3, kartNumber: 14, name: driverName, lastLapMs: 38420, bestLapMs: 38330, currentLap: 12, gapLeaderMs: 890, intervalAheadMs: 440, intervalBehindMs: 620 },
+          { position: 4, kartNumber: 18, name: 'David L.', lastLapMs: 38550, bestLapMs: 38500, currentLap: 12, gapLeaderMs: 1510, intervalAheadMs: 620, intervalBehindMs: 590 },
+          { position: 5, kartNumber: 22, name: 'Sonia P.', lastLapMs: 38710, bestLapMs: 38650, currentLap: 11, gapLeaderMs: 2100, intervalAheadMs: 590, intervalBehindMs: 0 }
+        ];
+        this.resolveTargetKart();
+      }
+
       setTargetDriverName(name) {
         if (!name) return;
         this.targetDriverName = String(name).trim();
         this.state.targetDriverName = this.targetDriverName;
         localStorage.setItem('kart_target_driver_name', this.targetDriverName);
-        this.resolveTargetKart();
+        if (this.isDemoMode) {
+          this.injectDemoData();
+        } else {
+          this.resolveTargetKart();
+        }
         this.notify();
       }
 
@@ -279,6 +317,7 @@
       }
 
       async fetchRealApexData() {
+        if (this.isDemoMode) return;
         const circuit = CIRCUITS[this.activeCircuitId];
         const apiPort = circuit.configPort + 4;
         const targetUrl = `https://${this.configHost}/live-timing/commonv2/functions/live_ajax.php?version=1.0.0&init=${this.pollInit}&index=${this.pollIndex}&port=${apiPort}&counter=${this.pollCounter}&duration=100&id=${this.randomSessionId}&ignored=0`;
@@ -579,7 +618,7 @@
     // =========================================================================
     // 4. PITBOARD HUD COMPONENT (DECOUPLED MEDIA QUERIES FOR PHYSICAL ROTATION LOCK)
     // =========================================================================
-    function PitboardHUD({ state, targetDriverName, isLocked, isViewportPortrait, onToggleLock, onChangeCircuit, onOpenTiming, onOpenSettings }) {
+    function PitboardHUD({ state, targetDriverName, isLocked, isViewportPortrait, onToggleLock, onToggleDemo, onChangeCircuit, onOpenTiming, onOpenSettings }) {
       const hasDrivers = Array.isArray(state.drivers) && state.drivers.length > 0;
       const currentTargetName = targetDriverName || 'Alex R.';
 
@@ -632,7 +671,7 @@
           <div className="w-full py-1.5 px-2.5 sm:px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-1.5 sm:mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-12 z-20">
             
             {/* DYNAMIC CIRCUIT SELECTOR DROPDOWN */}
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-hidden max-w-[52%]">
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-hidden max-w-[42%]">
               <span className="w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-pulse shrink-0"></span>
               <select 
                 value={state.activeCircuitId} 
@@ -646,7 +685,24 @@
             </div>
             
             {/* TIMING & LOCK CONTROLS */}
-            <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 z-30">
+            <div className="flex items-center gap-1 sm:gap-1.5 shrink-0 z-30">
+              {/* DEMO SIMULATION BUTTON */}
+              <button
+                type="button"
+                onClick={(e) => { e.stopPropagation(); onToggleDemo(); }}
+                className={`p-1.5 sm:px-2 rounded-lg border transition-all active:scale-95 cursor-pointer flex items-center justify-center text-xs ${
+                  state.isDemoMode 
+                    ? 'bg-purple-600/30 border-purple-500 text-purple-300 shadow-[0_0_10px_rgba(168,85,247,0.3)] font-black' 
+                    : 'bg-gray-900 border-gray-800 text-gray-400 hover:text-white'
+                }`}
+                title={state.isDemoMode ? 'Desactivar Modo Demo' : 'Activar Modo Demo (Simulación)'}
+              >
+                <span className="text-xs sm:mr-1">🎮</span>
+                <span className="hidden sm:inline font-bold uppercase tracking-wider text-[10px]">
+                  {state.isDemoMode ? 'DEMO ON' : 'DEMO'}
+                </span>
+              </button>
+
               {/* LOCK BUTTON (LOCK LAYOUT IN LANDSCAPE PHYSICALLY) */}
               <button
                 type="button"
@@ -934,6 +990,7 @@
             isLocked={isOrientationLocked}
             isViewportPortrait={isViewportPortrait}
             onToggleLock={handleToggleOrientationLock}
+            onToggleDemo={() => apexTimingService.toggleDemoMode()}
             onChangeCircuit={handleChangeCircuit}
             onOpenTiming={() => setIsTimingOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
