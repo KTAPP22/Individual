@@ -738,9 +738,7 @@
                 {/* FILA 1: GAP LÍDER */}
                 <div className="flex justify-between items-center bg-black/80 px-3 py-2 rounded-xl border border-gray-800">
                   <div className="flex flex-col text-left">
-                    <span className="text-xs font-bold text-gray-400">
-                      {isLeader ? 'GAP (LÍDER)' : (leaderDriver ? `GAP (LÍDER #${leaderDriver.kartNumber})` : 'GAP (LÍDER)')}
-                    </span>
+                    <span className="text-xs font-bold text-gray-400">GAP (LÍDER)</span>
                     <span className="text-[9px] text-gray-500 truncate max-w-[120px]">
                       {isLeader ? (driver ? driver.name : 'En cabeza') : (leaderDriver ? leaderDriver.name : 'Piloto líder')}
                     </span>
