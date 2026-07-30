@@ -859,7 +859,9 @@
         });
         apexTimingService.start();
 
+        // When locked, IGNORE resize events so the layout stays 100% immovable in horizontal mode
         const handleResize = () => {
+          if (isOrientationLocked) return;
           setIsViewportPortrait(window.innerHeight > window.innerWidth);
         };
         window.addEventListener('resize', handleResize);
@@ -895,39 +897,21 @@
         localStorage.setItem('kart_orientation_locked', String(newLockState));
 
         if (newLockState) {
+          // Lock into landscape orientation completely
+          setIsViewportPortrait(false);
           if (screen.orientation && screen.orientation.lock) {
             screen.orientation.lock('landscape').catch(() => {});
           }
         } else {
+          setIsViewportPortrait(window.innerHeight > window.innerWidth);
           if (screen.orientation && screen.orientation.unlock) {
             screen.orientation.unlock();
           }
         }
       };
 
-      // Hardware rotation block: If lock is active and phone is turned to portrait,
-      // we rotate the content container by 90deg using CSS transforms to keep it landscape!
-      const shouldApplyPhysicalRotation = isOrientationLocked && isViewportPortrait;
-
-      const containerStyle = shouldApplyPhysicalRotation
-        ? {
-            position: 'absolute',
-            top: 0,
-            left: '100%',
-            width: '100vh',
-            height: '100vw',
-            transform: 'rotate(90deg)',
-            transformOrigin: 'top left',
-            overflow: 'hidden'
-          }
-        : {
-            width: '100%',
-            height: '100%',
-            overflow: 'hidden'
-          };
-
       return (
-        <div style={containerStyle} className="relative">
+        <div className="w-full h-full overflow-hidden relative">
           {/* Main Dashboard HUD */}
           <PitboardHUD 
             state={timingState} 
