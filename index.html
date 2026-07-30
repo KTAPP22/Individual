@@ -905,20 +905,20 @@
         }
       };
 
-      // When lock is active and device is physically held vertically (portrait),
-      // rotate the widescreen landscape HUD by 90deg centered so it stays fixed in horizontal mode!
-      const isRotatedInPortrait = isOrientationLocked && isViewportPortrait;
+      // Hardware rotation block: If lock is active and phone is turned to portrait,
+      // we rotate the content container by 90deg using CSS transforms to keep it landscape!
+      const shouldApplyPhysicalRotation = isOrientationLocked && isViewportPortrait;
 
-      const containerStyle = isRotatedInPortrait
+      const containerStyle = shouldApplyPhysicalRotation
         ? {
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
+            position: 'absolute',
+            top: 0,
+            left: '100%',
             width: '100vh',
             height: '100vw',
-            transform: 'translate(-50%, -50%) rotate(90deg)',
-            overflow: 'hidden',
-            zIndex: 9999
+            transform: 'rotate(90deg)',
+            transformOrigin: 'top left',
+            overflow: 'hidden'
           }
         : {
             width: '100%',
