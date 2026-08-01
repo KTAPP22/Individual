@@ -410,8 +410,9 @@
                   const dataId = el.getAttribute('data-id');
                   if (!dataId || !dataId.startsWith(rId)) return;
                   const colSuffix = dataId.substring(rId.length);
+                  const dataType = el.getAttribute('data-type') || (el.className ? el.className.trim() : '');
                   const val = el.textContent.trim();
-                  this.applyColumnValue(entry, colSuffix, val, colMap);
+                  this.applyColumnValue(entry, colSuffix, val, colMap, dataType);
                 });
               });
               hasUpdates = true;
@@ -461,47 +462,50 @@
         }
       }
 
-      applyColumnValue(entry, colSuffix, value, colMap) {
+      applyColumnValue(entry, colSuffix, value, colMap, dataType = '') {
         if (!colSuffix) return false;
         
-        if (colSuffix === 'c1' || colSuffix === 'c2' || colSuffix === 'c3') {
+        if (colSuffix === 'c1' || colSuffix === 'c2' || colSuffix === 'c3' || dataType === 'rk') {
           const pos = parseInt(value.replace(/[^\d]/g, ''), 10);
-          if (!isNaN(pos)) {
+          if (!isNaN(pos) && pos > 0 && (!entry.position || colSuffix === 'c2' || dataType === 'rk')) {
             entry.position = pos;
             return true;
           }
         }
-        if (colSuffix === colMap.no) {
+        if (colSuffix === colMap.no || dataType === 'no' || dataType === 'no1') {
           const kn = parseInt(value.replace(/[^\d]/g, ''), 10);
-          if (!isNaN(kn)) {
+          if (!isNaN(kn) && kn > 0) {
             entry.kartNumber = kn;
             return true;
           }
         }
-        if (colSuffix === colMap.dr) {
-          entry.name = value.replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
-          return true;
+        if (colSuffix === colMap.dr || dataType === 'dr') {
+          const clean = value.replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
+          if (clean && clean !== 'Piloto') {
+            entry.name = clean;
+            return true;
+          }
         }
-        if (colSuffix === colMap.llp) {
+        if (colSuffix === colMap.llp || dataType === 'llp' || dataType === 'tn') {
           entry.lastLapMs = this.parseTimeToMs(value);
           return true;
         }
-        if (colSuffix === colMap.blp) {
+        if (colSuffix === colMap.blp || dataType === 'blp' || dataType === 'ib') {
           entry.bestLapMs = this.parseTimeToMs(value);
           return true;
         }
-        if (colSuffix === colMap.tlp) {
+        if (colSuffix === colMap.tlp || dataType === 'tlp') {
           const l = parseInt(value.replace(/[^\d]/g, ''), 10);
           if (!isNaN(l)) {
             entry.currentLap = l;
             return true;
           }
         }
-        if (colSuffix === colMap.gap) {
+        if (colSuffix === colMap.gap || dataType === 'gap') {
           entry.gapLeaderMs = this.parseGapToMs(value);
           return true;
         }
-        if (colSuffix === colMap.int) {
+        if (colSuffix === colMap.int || dataType === 'int') {
           entry.intervalAheadMs = this.parseGapToMs(value);
           return true;
         }
