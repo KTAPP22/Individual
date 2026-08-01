@@ -657,19 +657,33 @@
 
       formatGap(ms, rawStr = '') {
         if (ms === 0) return "LÍDER";
+        
         if (ms < 0) {
           const laps = Math.abs(ms);
           return `+${laps} ${laps === 1 ? 'VUELTA' : 'VUELTAS'}`;
         }
-        if (typeof rawStr === 'string' && rawStr.includes(':')) {
-          return `+${rawStr.replace(/^[+]/, '')}`;
+
+        if (typeof rawStr === 'string' && rawStr) {
+          const strLower = rawStr.toLowerCase();
+          if (strLower.includes('vuelta') || strLower.includes('lap')) {
+            const match = strLower.match(/(\d+)\s*vuelta/);
+            if (match) {
+              const laps = parseInt(match[1], 10);
+              if (laps > 0) return `+${laps} ${laps === 1 ? 'VUELTA' : 'VUELTAS'}`;
+            }
+            return "+1 VUELTA";
+          }
         }
-        if (!ms) return "+0.000s";
+
+        // Prefer vueltas over minutes when gap is 60 seconds or more
         if (ms >= 60000) {
-          const min = Math.floor(ms / 60000);
-          const sec = ((ms % 60000) / 1000).toFixed(3).padStart(6, '0');
-          return `+${min}:${sec}`;
+          const inferredLaps = Math.floor(ms / 60000);
+          return `+${inferredLaps} ${inferredLaps === 1 ? 'VUELTA' : 'VUELTAS'}`;
         }
+
+        if (!ms || ms <= 0) return "+0.000s";
+
+        // Normal seconds format for gaps under 60s
         return `+${(ms / 1000).toFixed(3)}s`;
       }
     }
