@@ -757,43 +757,18 @@
           {/* HEADER BAR */}
           <div className="w-full py-1.5 px-2.5 sm:px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-1.5 sm:mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-12 z-20">
             
-            {/* DYNAMIC CIRCUIT & DRIVER SELECTORS */}
-            <div className="flex items-center gap-1.5 sm:gap-2 overflow-hidden max-w-[65%]">
+            {/* DYNAMIC CIRCUIT SELECTOR DROPDOWN */}
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-hidden max-w-[50%]">
               <span className="w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-pulse shrink-0"></span>
-              
               <select 
                 value={state.activeCircuitId} 
                 onChange={(e) => { e.stopPropagation(); onChangeCircuit(e.target.value); }}
-                className="bg-black border border-gray-800 rounded-lg px-1.5 py-1 text-white text-xs sm:text-sm font-extrabold focus:border-[#00FF66] outline-none cursor-pointer truncate max-w-[130px] sm:max-w-[180px]"
+                className="bg-black border border-gray-800 rounded-lg px-1.5 py-1 text-white text-xs sm:text-sm font-extrabold focus:border-[#00FF66] outline-none cursor-pointer truncate"
               >
                 {Object.values(CIRCUITS).map(c => (
                   <option key={c.id} value={c.id} className="bg-black text-white font-mono font-bold">{c.name}</option>
                 ))}
               </select>
-
-              {/* LIVE KART SELECTOR DROPDOWN */}
-              {hasDrivers && (
-                <select
-                  value={driver ? driver.kartNumber : ''}
-                  onChange={(e) => {
-                    e.stopPropagation();
-                    const selectedKart = parseInt(e.target.value, 10);
-                    const selectedDriver = state.drivers.find(d => d.kartNumber === selectedKart);
-                    if (selectedDriver) {
-                      onSaveDriverName(selectedDriver.name);
-                    }
-                  }}
-                  className="bg-black border border-[#00FF66]/40 rounded-lg px-1.5 py-1 text-[#00FF66] text-xs sm:text-sm font-extrabold focus:border-[#00FF66] outline-none cursor-pointer truncate max-w-[130px] sm:max-w-[200px]"
-                  title="Seleccionar Kart o Equipo en pista"
-                >
-                  <option value="" className="bg-black text-gray-400 font-mono">👤 Seleccionar Kart...</option>
-                  {state.drivers.map(d => (
-                    <option key={d.kartNumber} value={d.kartNumber} className="bg-black text-white font-mono">
-                      P{d.position} | #{d.kartNumber} {d.name}
-                    </option>
-                  ))}
-                </select>
-              )}
             </div>
             
             {/* TIMING & LOCK CONTROLS */}
@@ -890,9 +865,11 @@
                 {/* FILA 1: GAP LÍDER */}
                 <div className="flex justify-between items-center bg-black/80 px-3 py-2 rounded-xl border border-gray-800">
                   <div className="flex flex-col text-left">
-                    <span className="text-xs font-bold text-gray-400">GAP (LÍDER)</span>
+                    <span className="text-xs font-bold text-gray-400">
+                      {leaderDriver ? `GAP (LÍDER) · #${leaderDriver.kartNumber}` : 'GAP (LÍDER)'}
+                    </span>
                     <span className="text-[9px] text-gray-500 truncate max-w-[120px]">
-                      {isLeader ? (driver ? driver.name : 'En cabeza') : (leaderDriver ? leaderDriver.name : 'Piloto líder')}
+                      {leaderDriver ? leaderDriver.name : 'Piloto líder'}
                     </span>
                   </div>
                   <span className={`text-lg sm:text-2xl font-black ${isLeader ? 'text-yellow-400' : 'text-white'}`}>
