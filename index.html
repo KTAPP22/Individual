@@ -125,17 +125,17 @@
       },
       "zuera": {
         id: "zuera",
-        name: "Karting Vendrell / Zuera",
+        name: "Karting Vendrell",
         url: "https://live.apex-timing.com/circuito-internacional-zuera/",
         configPort: 6940,
         columnMap: {
-          no: 'c3',
-          dr: 'c4',
-          llp: 'c7',
-          blp: 'c8',
+          no: 'c5',
+          dr: 'c3',
+          llp: 'c8',
+          blp: 'c11',
           gap: 'c9',
-          int: 'c9',
-          tlp: 'c10'
+          int: 'c10',
+          tlp: 'c9'
         }
       }
     };
@@ -463,22 +463,27 @@
       }
 
       applyColumnValue(entry, colSuffix, value, colMap, dataType = '') {
-        if (!colSuffix) return false;
+        if (!colSuffix || !value) return false;
         
-        if (colSuffix === 'c1' || colSuffix === 'c2' || colSuffix === 'c3' || dataType === 'rk') {
+        // 1. Position: c2 or dataType 'rk' (Never c3 which contains driver name!)
+        if (colSuffix === 'c2' || dataType === 'rk') {
           const pos = parseInt(value.replace(/[^\d]/g, ''), 10);
-          if (!isNaN(pos) && pos > 0 && (!entry.position || colSuffix === 'c2' || dataType === 'rk')) {
+          if (!isNaN(pos) && pos > 0) {
             entry.position = pos;
             return true;
           }
         }
-        if (colSuffix === colMap.no || dataType === 'no' || dataType === 'no1') {
+
+        // 2. Kart number: colMap.no or dataType starting with 'no'
+        if (colSuffix === colMap.no || dataType === 'no' || dataType.startsWith('no')) {
           const kn = parseInt(value.replace(/[^\d]/g, ''), 10);
           if (!isNaN(kn) && kn > 0) {
             entry.kartNumber = kn;
             return true;
           }
         }
+
+        // 3. Driver / Team name: colMap.dr or dataType 'dr'
         if (colSuffix === colMap.dr || dataType === 'dr') {
           const clean = value.replace(/&nbsp;/g, ' ').replace(/\s+/g, ' ').trim();
           if (clean && clean !== 'Piloto') {
@@ -486,29 +491,54 @@
             return true;
           }
         }
+
+        // 4. Last Lap: colMap.llp or dataType 'llp' or 'tn'
         if (colSuffix === colMap.llp || dataType === 'llp' || dataType === 'tn') {
-          entry.lastLapMs = this.parseTimeToMs(value);
+          const timeMs = this.parseTimeToMs(value);
+          if (timeMs > 0 || !entry.lastLapMs) {
+            entry.lastLapMs = timeMs;
+          }
           return true;
         }
+
+        // 5. Best Lap: colMap.blp or dataType 'blp' or 'ib'
         if (colSuffix === colMap.blp || dataType === 'blp' || dataType === 'ib') {
-          entry.bestLapMs = this.parseTimeToMs(value);
+          const timeMs = this.parseTimeToMs(value);
+          if (timeMs > 0 || !entry.bestLapMs) {
+            entry.bestLapMs = timeMs;
+          }
           return true;
         }
+
+        // 6. Total Laps / Current Lap: colMap.tlp or dataType 'tlp'
         if (colSuffix === colMap.tlp || dataType === 'tlp') {
           const l = parseInt(value.replace(/[^\d]/g, ''), 10);
-          if (!isNaN(l)) {
+          if (!isNaN(l) && l > 0) {
             entry.currentLap = l;
-            return true;
+            this.state.totalLaps = Math.max(this.state.totalLaps || 0, l);
           }
+          return true;
         }
+
+        // 7. Gap: colMap.gap or dataType 'gap'
         if (colSuffix === colMap.gap || dataType === 'gap') {
+          if (value.toLowerCase().includes('vuelta')) {
+            const laps = parseInt(value.replace(/[^\d]/g, ''), 10);
+            if (!isNaN(laps) && laps > 0) {
+              entry.currentLap = laps;
+              this.state.totalLaps = Math.max(this.state.totalLaps || 0, laps);
+            }
+          }
           entry.gapLeaderMs = this.parseGapToMs(value);
           return true;
         }
+
+        // 8. Interval: colMap.int or dataType 'int'
         if (colSuffix === colMap.int || dataType === 'int') {
           entry.intervalAheadMs = this.parseGapToMs(value);
           return true;
         }
+
         return false;
       }
 
