@@ -67,7 +67,7 @@
   </style>
 </head>
 <body class="bg-black text-white antialiased overflow-hidden">
-  <div id="root" class="h-full w-full"></div>
+  <div id="root" class="w-full h-full min-h-screen bg-black overflow-hidden"></div>
 
   <!-- Force disable service workers and clear cache storages for instant cross-device updates -->
   <script>
@@ -286,6 +286,26 @@
         if (val === undefined || val === null || val === '') return 0;
         const str = String(val).toLowerCase().trim();
         if (str === 'lider' || str === 'líder' || str === '0' || str === '--.---') return 0;
+
+        // Lap gap (e.g. "1 vuelta", "2 vueltas", "1 v")
+        if (str.includes('vuelta') || str.includes('laps') || str.includes('lap') || str.endsWith('v')) {
+          const laps = parseInt(str.replace(/[^\d]/g, ''), 10);
+          if (!isNaN(laps) && laps > 0) {
+            return -laps;
+          }
+        }
+
+        // Minute gap (e.g. "1:05.420")
+        const parts = str.split(':');
+        if (parts.length === 2) {
+          const min = parseFloat(parts[0]);
+          const sec = parseFloat(parts[1]);
+          if (!isNaN(min) && !isNaN(sec)) {
+            return Math.round((min * 60 + sec) * 1000);
+          }
+        }
+
+        // Second gap (e.g. "25.670")
         const clean = str.replace(/[^0-9.]/g, '').trim();
         const sec = parseFloat(clean);
         if (!isNaN(sec)) {
@@ -530,12 +550,14 @@
             }
           }
           entry.gapLeaderMs = this.parseGapToMs(value);
+          entry.gapLeaderRaw = value;
           return true;
         }
 
         // 8. Interval: colMap.int or dataType 'int'
         if (colSuffix === colMap.int || dataType === 'int') {
           entry.intervalAheadMs = this.parseGapToMs(value);
+          entry.intervalAheadRaw = value;
           return true;
         }
 
@@ -553,9 +575,21 @@
         return `${secStr}.${msStr}`;
       }
 
-      formatGap(ms) {
+      formatGap(ms, rawStr = '') {
         if (ms === 0) return "LÍDER";
-        if (!ms || ms < 0) return "+0.000";
+        if (ms < 0) {
+          const laps = Math.abs(ms);
+          return `+${laps} ${laps === 1 ? 'VUELTA' : 'VUELTAS'}`;
+        }
+        if (typeof rawStr === 'string' && rawStr.includes(':')) {
+          return `+${rawStr.replace(/^[+]/, '')}`;
+        }
+        if (!ms) return "+0.000";
+        if (ms >= 60000) {
+          const min = Math.floor(ms / 60000);
+          const sec = ((ms % 60000) / 1000).toFixed(3).padStart(6, '0');
+          return `+${min}:${sec}`;
+        }
         return `+${(ms / 1000).toFixed(3)}s`;
       }
     }
@@ -802,7 +836,7 @@
                     </span>
                   </div>
                   <span className={`text-lg sm:text-2xl font-black ${isLeader ? 'text-yellow-400' : 'text-white'}`}>
-                    {driver ? (isLeader ? 'LÍDER' : apexTimingService.formatGap(driver.gapLeaderMs)) : '--:--'}
+                    {driver ? (isLeader ? 'LÍDER' : apexTimingService.formatGap(driver.gapLeaderMs, driver.gapLeaderRaw)) : '--:--'}
                   </span>
                 </div>
 
@@ -814,7 +848,7 @@
                       <span className="text-[9px] text-cyan-600 truncate max-w-[100px]">{p2Driver ? p2Driver.name : 'Sin datos'}</span>
                     </div>
                     <span className="text-lg sm:text-2xl font-black text-cyan-400">
-                      {p2Driver ? apexTimingService.formatGap(p2Driver.gapLeaderMs) : '---'}
+                      {p2Driver ? apexTimingService.formatGap(p2Driver.gapLeaderMs, p2Driver.gapLeaderRaw) : '---'}
                     </span>
                   </div>
                 ) : (
@@ -824,7 +858,7 @@
                       <span className="text-[9px] text-gray-500 truncate max-w-[100px]">{driverAhead ? driverAhead.name : 'Kart anterior'}</span>
                     </div>
                     <span className="text-lg sm:text-2xl font-black text-[#00FF66]">
-                      {driverAhead ? apexTimingService.formatGap(driver.intervalAheadMs) : '---'}
+                      {driverAhead ? apexTimingService.formatGap(driver.intervalAheadMs, driver.intervalAheadRaw) : '---'}
                     </span>
                   </div>
                 )}
@@ -837,7 +871,7 @@
                       <span className="text-[9px] text-orange-600 truncate max-w-[100px]">{p3Driver ? p3Driver.name : 'Sin datos'}</span>
                     </div>
                     <span className="text-lg sm:text-2xl font-black text-orange-400">
-                      {p3Driver ? apexTimingService.formatGap(p3Driver.gapLeaderMs) : '---'}
+                      {p3Driver ? apexTimingService.formatGap(p3Driver.gapLeaderMs, p3Driver.gapLeaderRaw) : '---'}
                     </span>
                   </div>
                 ) : (
@@ -847,7 +881,7 @@
                       <span className="text-[9px] text-gray-500 truncate max-w-[100px]">{driverBehind ? driverBehind.name : 'Kart posterior'}</span>
                     </div>
                     <span className="text-lg sm:text-2xl font-black text-red-400">
-                      {driverBehind ? apexTimingService.formatGap(driver.intervalBehindMs) : '---'}
+                      {driverBehind ? apexTimingService.formatGap(driver.intervalBehindMs, driver.intervalBehindRaw) : '---'}
                     </span>
                   </div>
                 )}
