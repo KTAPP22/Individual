@@ -493,6 +493,9 @@
                 }
               }
             }
+            // Leader's gap to themselves is always 0
+            leader.gapLeaderMs = 0;
+            leader.gapLeaderRaw = '';
           }
 
           if (this.state.totalLaps > 0) {
@@ -619,7 +622,7 @@
       }
 
       formatGap(ms, rawStr = '') {
-        if (ms === 0) return "LÍDER";
+        if (ms === 0) return "+0.000s";
         if (ms < 0) {
           const laps = Math.abs(ms);
           return `+${laps} ${laps === 1 ? 'VUELTA' : 'VUELTAS'}`;
