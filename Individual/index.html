@@ -622,13 +622,6 @@
 
         // 7. Gap: colMap.gap or dataType 'gap'
         if (colSuffix === colMap.gap || dataType === 'gap') {
-          if (value.toLowerCase().includes('vuelta')) {
-            const laps = parseInt(value.replace(/[^\d]/g, ''), 10);
-            if (!isNaN(laps) && laps > 0) {
-              entry.currentLap = laps;
-              this.state.totalLaps = Math.max(this.state.totalLaps || 0, laps);
-            }
-          }
           entry.gapLeaderMs = this.parseGapToMs(value);
           entry.gapLeaderRaw = value;
           return true;
@@ -880,11 +873,18 @@
                 </div>
               </div>
 
-              <div className={`bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2 sm:p-2.5 flex flex-col justify-between items-center text-center shadow-2xl min-h-[100px] ${isLandscapeLayout ? 'w-full h-[35%]' : 'w-[40%] h-auto'}`}>
-                <span className="text-gray-400 font-black text-xs uppercase tracking-widest">TOTAL VUELTAS</span>
-                <div className="my-auto flex items-baseline gap-1 font-mono font-black">
-                  <span className="text-3xl sm:text-4xl md:text-5xl text-white">{driver ? driver.currentLap : '0'}</span>
-                  <span className="text-lg sm:text-xl md:text-2xl text-gray-500">/ {state.totalLaps || '--'}</span>
+              {/* CARD: TOTAL VUELTAS */}
+              <div className="bg-[#0A0A0E] border-2 border-gray-800 rounded-2xl p-2.5 flex flex-col justify-between items-center text-center shadow-2xl h-full min-h-[110px]">
+                <span className="text-gray-400 font-black text-[10px] uppercase tracking-widest">VUELTAS</span>
+                <div className="my-1 flex items-baseline justify-center font-mono font-black">
+                  <span className="text-4xl text-white">
+                    {driver && typeof driver.currentLap === 'number' && driver.currentLap > 0 ? driver.currentLap : '0'}
+                  </span>
+                </div>
+                <div className="w-full flex justify-center">
+                  <span className="text-[9px] font-mono text-emerald-400 font-bold bg-emerald-500/10 border border-emerald-500/20 px-2 py-0.5 rounded-md uppercase tracking-wider">
+                    EN PISTA
+                  </span>
                 </div>
               </div>
             </div>
