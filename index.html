@@ -161,8 +161,9 @@
         this.activeProxyIndex = 0;
 
         this.corsProxies = [
-          (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`,
+          (url) => url, // Direct fetch (Apex Timing server has native Access-Control-Allow-Origin: *)
           (url) => `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+          (url) => `https://corsproxy.org/?${encodeURIComponent(url)}`,
           (url) => `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(url)}`
         ];
 
@@ -314,11 +315,18 @@
             const dataText = await response.text();
             this.pollCounter += 1;
 
-            if (dataText && dataText !== 'error' && !dataText.includes('<!DOCTYPE')) {
+            const isInvalidResponse = !dataText || 
+              dataText === 'error' ||
+              dataText.includes('<!DOCTYPE') || 
+              dataText.includes('Server-side requests are not allowed') || 
+              dataText.includes('error code:') ||
+              (dataText.startsWith('{') && dataText.includes('"error"'));
+
+            if (!isInvalidResponse) {
               const atIdx1 = dataText.indexOf('@');
               const atIdx2 = dataText.indexOf('@', atIdx1 + 1);
               
-              if (atIdx1 > 0 && atIdx2 > atIdx1) {
+              if (atIdx1 >= 0 && atIdx2 > atIdx1) {
                 const newInit = parseInt(dataText.substring(0, atIdx1), 10);
                 this.pollInit = newInit || this.pollInit;
                 this.pollIndex = parseInt(dataText.substring(atIdx1 + 1, atIdx2), 10) || this.pollIndex;
