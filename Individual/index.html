@@ -15,16 +15,16 @@
   <link rel="manifest" href="manifest.json" />
   <title>Karting Live Timing HUD - Lucas Guerrero & Campillos</title>
   
-  <!-- React & ReactDOM (Loaded globally for absolute stability) -->
-  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
-  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
-  
-  <!-- Babel for Dynamic Browser JSX compiling -->
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <!-- Tailwind CSS CDN -->
+  <!-- High-Availability CDNs (Cloudflare + jsDelivr) for React & Babel -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.6/babel.min.js" crossorigin></script>
+  <script src="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/lib/index.min.js" onerror="this.onerror=null;"></script>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
+    window.onerror = function(msg, url, line) {
+      console.error("Global Error:", msg, url, line);
+    };
     tailwind.config = {
       theme: {
         extend: {
@@ -748,18 +748,43 @@
           {/* HEADER BAR */}
           <div className="w-full py-1.5 px-2.5 sm:px-3 bg-[#0A0A0E] border-2 border-gray-800 rounded-xl mb-1.5 sm:mb-2 flex items-center justify-between font-mono shadow-xl shrink-0 h-12 z-20">
             
-            {/* DYNAMIC CIRCUIT SELECTOR DROPDOWN */}
-            <div className="flex items-center gap-2 overflow-hidden max-w-[45%]">
+            {/* DYNAMIC CIRCUIT & DRIVER SELECTORS */}
+            <div className="flex items-center gap-1.5 sm:gap-2 overflow-hidden max-w-[65%]">
               <span className="w-2.5 h-2.5 rounded-full bg-[#00FF66] animate-pulse shrink-0"></span>
+              
               <select 
                 value={state.activeCircuitId} 
                 onChange={(e) => { e.stopPropagation(); onChangeCircuit(e.target.value); }}
-                className="bg-black border border-gray-800 rounded-lg px-2 py-1 text-white text-xs sm:text-sm font-extrabold focus:border-[#00FF66] outline-none cursor-pointer"
+                className="bg-black border border-gray-800 rounded-lg px-1.5 py-1 text-white text-xs sm:text-sm font-extrabold focus:border-[#00FF66] outline-none cursor-pointer truncate max-w-[130px] sm:max-w-[180px]"
               >
                 {Object.values(CIRCUITS).map(c => (
                   <option key={c.id} value={c.id} className="bg-black text-white font-mono font-bold">{c.name}</option>
                 ))}
               </select>
+
+              {/* LIVE KART SELECTOR DROPDOWN */}
+              {hasDrivers && (
+                <select
+                  value={driver ? driver.kartNumber : ''}
+                  onChange={(e) => {
+                    e.stopPropagation();
+                    const selectedKart = parseInt(e.target.value, 10);
+                    const selectedDriver = state.drivers.find(d => d.kartNumber === selectedKart);
+                    if (selectedDriver) {
+                      onSaveDriverName(selectedDriver.name);
+                    }
+                  }}
+                  className="bg-black border border-[#00FF66]/40 rounded-lg px-1.5 py-1 text-[#00FF66] text-xs sm:text-sm font-extrabold focus:border-[#00FF66] outline-none cursor-pointer truncate max-w-[130px] sm:max-w-[200px]"
+                  title="Seleccionar Kart o Equipo en pista"
+                >
+                  <option value="" className="bg-black text-gray-400 font-mono">👤 Seleccionar Kart...</option>
+                  {state.drivers.map(d => (
+                    <option key={d.kartNumber} value={d.kartNumber} className="bg-black text-white font-mono">
+                      P{d.position} | #{d.kartNumber} {d.name}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
             
             {/* TIMING & LOCK CONTROLS */}
