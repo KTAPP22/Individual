@@ -469,13 +469,48 @@
         if (hasUpdates) {
           this.state.isLiveConnected = true;
           this.state.drivers = Array.from(this.sessionRows.values())
-            .filter(d => d.kartNumber > 0)
+            .filter(d => d && d.kartNumber > 0 && d.position > 0)
             .sort((a, b) => a.position - b.position);
+
+          // Calculate total laps and individual driver laps accurately from leader gap cell
+          if (this.state.drivers.length > 0) {
+            const leader = this.state.drivers[0];
+            if (leader && leader.gapLeaderRaw) {
+              const matchLeader = leader.gapLeaderRaw.match(/vuelta\s*(\d+)/i);
+              if (matchLeader) {
+                const totalLapsFound = parseInt(matchLeader[1], 10);
+                if (totalLapsFound > 0) {
+                  this.state.totalLaps = totalLapsFound;
+                  leader.currentLap = totalLapsFound;
+                }
+              }
+            }
+          }
+
+          if (this.state.totalLaps > 0) {
+            const sessionTotal = this.state.totalLaps;
+            this.state.drivers.forEach(d => {
+              if (d.position === 1) {
+                d.currentLap = sessionTotal;
+              } else if (d.gapLeaderRaw) {
+                const matchBehind = d.gapLeaderRaw.match(/(\d+)\s*vuelta/i);
+                if (matchBehind) {
+                  const lapsBehind = parseInt(matchBehind[1], 10);
+                  d.currentLap = Math.max(0, sessionTotal - lapsBehind);
+                } else if (!d.currentLap || d.currentLap === 0) {
+                  d.currentLap = sessionTotal;
+                }
+              } else if (!d.currentLap || d.currentLap === 0) {
+                d.currentLap = sessionTotal;
+              }
+            });
+          }
 
           this.resolveTargetKart();
 
           for (let i = 0; i < this.state.drivers.length - 1; i++) {
             this.state.drivers[i].intervalBehindMs = this.state.drivers[i + 1].intervalAheadMs;
+            this.state.drivers[i].intervalBehindRaw = this.state.drivers[i + 1].intervalAheadRaw;
           }
 
           this.notify();
