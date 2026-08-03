@@ -1099,13 +1099,13 @@
 
       const containerStyle = shouldForceLandscapeCSS
         ? {
-            position: 'fixed',
-            top: '50%',
-            left: '50%',
+            position: 'absolute',
+            top: 0,
+            left: '100%',
             width: `${viewportSize.h}px`,
             height: `${viewportSize.w}px`,
-            transform: 'translate(-50%, -50%) rotate(90deg)',
-            transformOrigin: 'center center',
+            transform: 'rotate(90deg)',
+            transformOrigin: 'top left',
             overflow: 'hidden',
             boxSizing: 'border-box',
             zIndex: 9999
