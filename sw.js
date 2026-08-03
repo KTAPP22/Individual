@@ -1,4 +1,4 @@
-const CACHE_NAME = 'karthud-v2.0.7-safety-scale-factor';
+const CACHE_NAME = 'karthud-v2.0.8-iphone14-scale';
 const ASSETS = [
   './',
   './index.html',
