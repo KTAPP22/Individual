@@ -1,4 +1,4 @@
-const CACHE_NAME = 'karthud-v2.0.2-warning-overlay';
+const CACHE_NAME = 'karthud-v2.0.3-calibrated-rotation';
 const ASSETS = [
   './',
   './index.html',

@@ -1030,6 +1030,10 @@
       const [isOrientationLocked, setIsOrientationLocked] = useState(
         localStorage.getItem('kart_orientation_locked') === 'true'
       );
+      const [viewportSize, setViewportSize] = useState({
+        w: window.innerWidth,
+        h: window.innerHeight
+      });
       const [isViewportPortrait, setIsViewportPortrait] = useState(
         window.innerHeight > window.innerWidth
       );
@@ -1042,6 +1046,10 @@
 
         const handleResize = () => {
           setIsViewportPortrait(window.innerHeight > window.innerWidth);
+          setViewportSize({
+            w: window.innerWidth,
+            h: window.innerHeight
+          });
         };
         window.addEventListener('resize', handleResize);
         window.addEventListener('orientationchange', handleResize);
@@ -1086,15 +1094,28 @@
         }
       };
 
-      const containerStyle = {
-        width: '100%',
-        height: '100%',
-        minHeight: '100vh',
-        overflow: 'hidden'
-      };
+      // When orientation lock is enabled AND device screen is portrait, rotate content 90deg to FORCE horizontal landscape view
+      const shouldForceLandscapeCSS = isOrientationLocked && isViewportPortrait;
 
-      // Render portrait warning overlay if rotation is locked and device rotated to portrait
-      const showPortraitLockWarning = isOrientationLocked && isViewportPortrait;
+      const containerStyle = shouldForceLandscapeCSS
+        ? {
+            position: 'fixed',
+            top: '50%',
+            left: '50%',
+            width: `${viewportSize.h}px`,
+            height: `${viewportSize.w}px`,
+            transform: 'translate(-50%, -50%) rotate(90deg)',
+            transformOrigin: 'center center',
+            overflow: 'hidden',
+            boxSizing: 'border-box',
+            zIndex: 9999
+          }
+        : {
+            width: '100%',
+            height: '100%',
+            minHeight: '100vh',
+            overflow: 'hidden'
+          };
 
       return (
         <div style={containerStyle} className="relative w-full h-full min-h-screen bg-black overflow-hidden">
@@ -1120,25 +1141,6 @@
             onClose={() => setIsTimingOpen(false)} 
             activeCircuitId={timingState.activeCircuitId}
           />
-
-          {/* FULL SCREEN WARNING OVERLAY FOR FALLBACK VISUAL ORIENTATION LOCK */}
-          {showPortraitLockWarning && (
-            <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 text-center font-mono select-none">
-              <div className="text-yellow-400 text-6xl mb-4 animate-bounce">🔄</div>
-              <h2 className="text-lg sm:text-xl font-black uppercase text-white tracking-widest">ORIENTACIÓN BLOQUEADA</h2>
-              <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-xs leading-relaxed">
-                Gira el dispositivo a posición horizontal (Landscape) para continuar visualizando la telemetría en el volante.
-              </p>
-              
-              {/* OVERRIDE UNLOCK BUTTON */}
-              <button 
-                onClick={handleToggleOrientationLock}
-                className="mt-8 px-4 py-2 border-2 border-yellow-500/60 hover:border-yellow-400 text-yellow-300 text-[11px] font-black rounded-xl active:scale-95 transition-all cursor-pointer"
-              >
-                🔓 DESBLOQUEAR MANUALMENTE
-              </button>
-            </div>
-          )}
         </div>
       );
     }
