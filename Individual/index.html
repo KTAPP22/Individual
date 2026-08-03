@@ -107,6 +107,7 @@
         url: "https://live.apex-timing.com/kartodromo-lucas-guerrero/",
         configPort: 9950,
         columnMap: {
+          rk: 'c2',
           no: 'c4',
           dr: 'c5',
           llp: 'c6',
@@ -122,6 +123,7 @@
         url: "https://www.apex-timing.com/live-timing/kartcenter-campillos/",
         configPort: 9370,
         columnMap: {
+          rk: 'c3',
           no: 'c4',
           dr: 'c5',
           llp: 'c9',
@@ -137,6 +139,7 @@
         url: "https://live.apex-timing.com/circuito-internacional-zuera/",
         configPort: 6940,
         columnMap: {
+          rk: 'c2',
           no: 'c5',
           dr: 'c3',
           llp: 'c8',
@@ -565,8 +568,8 @@
       applyColumnValue(entry, colSuffix, value, colMap, dataType = '') {
         if (!colSuffix || !value) return false;
         
-        // 1. Position: c2 or dataType 'rk' (Never c3 which contains driver name!)
-        if (colSuffix === 'c2' || dataType === 'rk') {
+        // 1. Position: colMap.rk or dataType 'rk'
+        if (colSuffix === colMap.rk || dataType === 'rk') {
           const pos = parseInt(value.replace(/[^\d]/g, ''), 10);
           if (!isNaN(pos) && pos > 0) {
             entry.position = pos;
