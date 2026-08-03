@@ -1108,12 +1108,12 @@
       };
 
       if (shouldForceLandscapeCSS) {
-        const refW = 580;
-        const refH = 290;
+        const refW = 680;
+        const refH = 250;
         const scaleW = viewportSize.w / refH;
         const scaleH = viewportSize.h / refW;
-        // Apply 0.88 safety factor to perfectly fit within iPhone 14 visible viewport bounds (accounting for notch and Safari bars)
-        const S = Math.min(scaleW, scaleH) * 0.88;
+        // Apply a high precision safety scale to ensure top and bottom boundaries fit perfectly without clipping
+        const S = Math.min(scaleW, scaleH) * 0.96;
 
         containerStyle = {
           position: 'fixed',
