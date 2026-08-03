@@ -1,4 +1,4 @@
-const CACHE_NAME = 'karthud-v2.0.6-mathematical-rotation';
+const CACHE_NAME = 'karthud-v2.0.7-safety-scale-factor';
 const ASSETS = [
   './',
   './index.html',

@@ -1082,11 +1082,12 @@
       };
 
       if (shouldForceLandscapeCSS) {
-        const refW = 800;
-        const refH = 375;
+        const refW = 660;
+        const refH = 330;
         const scaleW = viewportSize.w / refH;
         const scaleH = viewportSize.h / refW;
-        const S = Math.min(scaleW, scaleH);
+        // Apply 0.92 safety factor to ensure 100% visibility within browser address bars & safe areas
+        const S = Math.min(scaleW, scaleH) * 0.92;
 
         containerStyle = {
           position: 'fixed',
