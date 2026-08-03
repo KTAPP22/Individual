@@ -835,11 +835,11 @@
                     ? 'bg-yellow-600/20 border-yellow-500 text-yellow-300 shadow-[0_0_10px_rgba(234,179,8,0.25)]' 
                     : 'bg-gray-900 border-gray-800 text-gray-400 hover:text-white'
                 }`}
-                title={isLocked ? 'Orientación Horizontal Bloqueada' : 'Bloquear en Horizontal'}
+                title={isLocked ? 'Orientación Horizontal Bloqueada' : 'Orientación Libre'}
               >
                 <span className="mr-1 text-xs">{isLocked ? '🔒' : '🔓'}</span>
                 <span className="hidden sm:inline font-bold uppercase tracking-wider text-[10px]">
-                  {isLocked ? 'HORIZ. FIJO' : 'BLOQUEAR'}
+                  {isLocked ? 'BLOQUEADO' : 'BLOQUEAR'}
                 </span>
               </button>
 
@@ -1093,6 +1093,9 @@
         overflow: 'hidden'
       };
 
+      // Render portrait warning overlay if rotation is locked and device rotated to portrait
+      const showPortraitLockWarning = isOrientationLocked && isViewportPortrait;
+
       return (
         <div style={containerStyle} className="relative w-full h-full min-h-screen bg-black overflow-hidden">
           {/* Main Dashboard HUD */}
@@ -1117,6 +1120,25 @@
             onClose={() => setIsTimingOpen(false)} 
             activeCircuitId={timingState.activeCircuitId}
           />
+
+          {/* FULL SCREEN WARNING OVERLAY FOR FALLBACK VISUAL ORIENTATION LOCK */}
+          {showPortraitLockWarning && (
+            <div className="fixed inset-0 z-50 bg-black flex flex-col items-center justify-center p-6 text-center font-mono select-none">
+              <div className="text-yellow-400 text-6xl mb-4 animate-bounce">🔄</div>
+              <h2 className="text-lg sm:text-xl font-black uppercase text-white tracking-widest">ORIENTACIÓN BLOQUEADA</h2>
+              <p className="text-xs sm:text-sm text-gray-400 mt-2 max-w-xs leading-relaxed">
+                Gira el dispositivo a posición horizontal (Landscape) para continuar visualizando la telemetría en el volante.
+              </p>
+              
+              {/* OVERRIDE UNLOCK BUTTON */}
+              <button 
+                onClick={handleToggleOrientationLock}
+                className="mt-8 px-4 py-2 border-2 border-yellow-500/60 hover:border-yellow-400 text-yellow-300 text-[11px] font-black rounded-xl active:scale-95 transition-all cursor-pointer"
+              >
+                🔓 DESBLOQUEAR MANUALMENTE
+              </button>
+            </div>
+          )}
         </div>
       );
     }

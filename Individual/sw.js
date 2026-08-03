@@ -1,4 +1,4 @@
-const CACHE_NAME = 'karthud-v2.0.1-rollback';
+const CACHE_NAME = 'karthud-v2.0.2-warning-overlay';
 const ASSETS = [
   './',
   './index.html',
