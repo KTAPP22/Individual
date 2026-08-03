@@ -1074,25 +1074,33 @@
       // When orientation lock is enabled AND device screen is portrait, rotate content 90deg to FORCE horizontal landscape view
       const shouldForceLandscapeCSS = isOrientationLocked && isViewportPortrait;
 
-      const containerStyle = shouldForceLandscapeCSS
-        ? {
-            position: 'absolute',
-            top: 0,
-            left: '100%',
-            width: `${viewportSize.h}px`,
-            height: `${viewportSize.w}px`,
-            transform: 'rotate(90deg)',
-            transformOrigin: 'top left',
-            overflow: 'hidden',
-            boxSizing: 'border-box',
-            zIndex: 9999
-          }
-        : {
-            width: '100%',
-            height: '100%',
-            minHeight: '100vh',
-            overflow: 'hidden'
-          };
+      let containerStyle = {
+        width: '100%',
+        height: '100%',
+        minHeight: '100vh',
+        overflow: 'hidden'
+      };
+
+      if (shouldForceLandscapeCSS) {
+        const refW = 800;
+        const refH = 375;
+        const scaleW = viewportSize.w / refH;
+        const scaleH = viewportSize.h / refW;
+        const S = Math.min(scaleW, scaleH);
+
+        containerStyle = {
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          width: `${refW}px`,
+          height: `${refH}px`,
+          transform: `translate(-50%, -50%) rotate(90deg) scale(${S})`,
+          transformOrigin: 'center center',
+          overflow: 'hidden',
+          boxSizing: 'border-box',
+          zIndex: 9999
+        };
+      }
 
       return (
         <div style={containerStyle} className="relative w-full h-full min-h-screen bg-black overflow-hidden">

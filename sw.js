@@ -1,4 +1,4 @@
-const CACHE_NAME = 'karthud-v2.0.5-campillos-parser';
+const CACHE_NAME = 'karthud-v2.0.6-mathematical-rotation';
 const ASSETS = [
   './',
   './index.html',
