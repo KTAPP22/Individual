@@ -1,4 +1,4 @@
-const CACHE_NAME = 'karthud-v2.0.0';
+const CACHE_NAME = 'karthud-v2.0.1-rollback';
 const ASSETS = [
   './',
   './index.html',
